@@ -5,7 +5,7 @@
 //  UPDATE: Ganti seluruh Code.gs, lalu re-deploy.
 // ============================================================
 
-const SPREADSHEET_ID    = "GANTI_DENGAN_ID_SPREADSHEET_ANDA";
+const SPREADSHEET_ID    = "1BH128K3HKqogvCzjyaq41E-8KioM2qbKgzJKD4gXuRE";
 const SHEET_MAHASISWA   = "Mahasiswa";
 const SHEET_TOKEN       = "Token";
 const SHEET_SOAL        = "Soal";
@@ -111,42 +111,55 @@ function getSession({ nim, token }) { return verifyToken({ nim, token }); }
 function startUjian({ nim, token }) {
   const check = verifyToken({ nim, token });
   if (!check.ok) return check;
-  const { mataKuliah, durasi, sisaDetik, tokenId } = check;
+  
+  const { mataKuliah, durasi, tokenId } = check;
+  const durasiDetik = durasi * 60; // Ubah durasi menit menjadi detik
 
   const sesiSheet = getSheet(SHEET_SESI);
   const sesiData  = sesiSheet.getDataRange().getValues();
+  
   for (let i = 1; i < sesiData.length; i++) {
     const row = sesiData[i];
     if (String(row[1]).trim()===String(nim).trim() &&
         String(row[2]).trim().toUpperCase()===tokenId &&
         String(row[5]).trim().toLowerCase()==="aktif") {
+      
+      // PERBAIKAN: Hitung sisa waktu ujian berdasarkan waktu mulai di sesi
+      const waktuMulai = new Date(row[4]);
+      const berjalanDetik = Math.floor((new Date() - waktuMulai) / 1000);
+      let sisaDetikUjian = durasiDetik - berjalanDetik;
+      if (sisaDetikUjian < 0) sisaDetikUjian = 0; // Pastikan tidak minus jika waktu habis
+
       const urutanSoal = JSON.parse(row[6]);
       const soalList   = getSoalByIds(urutanSoal, mataKuliah);
       const jawabanMap = getJawabanMahasiswa(nim, row[0]);
       const jmlPelanggaran = getPelanggaranCount(nim, row[0]);
       logAksi(nim, "UJIAN_RESUME", mataKuliah);
-      return { ok:true, resume:true, sesiId:row[0], mataKuliah, durasi, sisaDetik,
+      
+      return { ok:true, resume:true, sesiId:row[0], mataKuliah, durasi, sisaDetik: sisaDetikUjian,
                soal:soalList, jawaban:jawabanMap, jumlahSoal:soalList.length,
                pelanggaranCount:jmlPelanggaran, maxPelanggaran:MAX_PELANGGARAN };
     }
   }
 
+  // Jika ini adalah sesi baru (pertama kali klik mulai)
   const semuaSoal = getSoalByMataKuliah(mataKuliah);
   if (semuaSoal.length === 0) return { ok:false, message:"Bank soal belum tersedia." };
-
+  
   const seed      = nim + tokenId;
   const soalAcak  = shuffleWithSeed(semuaSoal, seed);
   const soalFinal = soalAcak.map(s => ({
     id: s.id, pertanyaan: s.pertanyaan, tingkat: s.tingkat,
     opsi: shuffleWithSeed(s.opsi, seed + s.id)
   }));
-
+  
   const urutanIds  = soalFinal.map(s => s.id);
   const sesiId     = "SESI_" + nim + "_" + tokenId;
+  
   sesiSheet.appendRow([sesiId, nim, tokenId, mataKuliah, new Date(), "aktif", JSON.stringify(urutanIds), soalFinal.length, ""]);
-
   logAksi(nim, "UJIAN_MULAI", mataKuliah + " | " + soalFinal.length + " soal");
-  return { ok:true, resume:false, sesiId, mataKuliah, durasi, sisaDetik,
+  
+  return { ok:true, resume:false, sesiId, mataKuliah, durasi, sisaDetik: durasiDetik,
            soal:soalFinal, jawaban:{}, jumlahSoal:soalFinal.length,
            pelanggaranCount:0, maxPelanggaran:MAX_PELANGGARAN };
 }
@@ -289,20 +302,47 @@ function logPelanggaran({ nim, sesiId, jenis, detail, nomorSoal }) {
  */
 function syncTimer({ nim, token }) {
   if (!nim || !token) return { ok:false };
+  
+  // 1. Cek validitas token secara umum
+  const sheetToken = getSheet(SHEET_TOKEN);
+  const dataToken  = sheetToken.getDataRange().getValues();
+  let durasiMenit = 0;
+  let tAkhir = null;
 
-  // Ambil sisa waktu dari token
-  const sheet = getSheet(SHEET_TOKEN);
-  const data  = sheet.getDataRange().getValues();
-  for (let i=1; i<data.length; i++) {
-    const [rToken,,, rMulai, rAkhir, rStatus] = data[i];
-    // Cari berdasarkan NIM yang punya token aktif
+  for (let i=1; i<dataToken.length; i++) {
+    const [rToken,, rDurasi, , rAkhirDB, rStatus] = dataToken[i];
     if (String(rToken).trim().toUpperCase() === String(token).trim().toUpperCase()) {
       if (String(rStatus).trim().toLowerCase() !== "aktif") return { ok:false, expired:true };
-      const now = new Date(), tAkhir = new Date(rAkhir);
-      if (now > tAkhir) return { ok:true, sisaDetik:0, expired:true };
-      return { ok:true, sisaDetik: Math.floor((tAkhir-now)/1000), expired:false };
+      tAkhir = new Date(rAkhirDB);
+      durasiMenit = Number(rDurasi);
+      break;
     }
   }
+
+  if (!tAkhir) return { ok:false, expired:true };
+  if (new Date() > tAkhir) return { ok:true, sisaDetik:0, expired:true }; // Masa aktif token 24 jam sudah habis
+
+  // 2. PERBAIKAN: Cari Sesi ujian mahasiswa yang sedang aktif
+  const sheetSesi = getSheet(SHEET_SESI);
+  const dataSesi = sheetSesi.getDataRange().getValues();
+  
+  for (let i=1; i<dataSesi.length; i++) {
+    if (String(dataSesi[i][1]).trim()===String(nim).trim() &&
+        String(dataSesi[i][2]).trim().toUpperCase()===String(token).trim().toUpperCase() &&
+        String(dataSesi[i][5]).trim().toLowerCase()==="aktif") {
+        
+        // Hitung sisa waktu berdasarkan durasi ujian dikurangi waktu yang sudah berjalan
+        const waktuMulai = new Date(dataSesi[i][4]);
+        const berjalanDetik = Math.floor((new Date() - waktuMulai) / 1000);
+        let sisaDetikUjian = (durasiMenit * 60) - berjalanDetik;
+
+        if (sisaDetikUjian <= 0) {
+           return { ok:true, sisaDetik:0, expired:true }; // Durasi ujian habis, paksa kumpulkan
+        }
+        return { ok:true, sisaDetik: sisaDetikUjian, expired:false }; // Kembalikan sisa waktu yang benar
+    }
+  }
+  
   return { ok:false };
 }
 
