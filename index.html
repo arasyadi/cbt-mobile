@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>CBT Universitas</title>
+  <link rel="manifest" href="?manifest=1">
+  <meta name="theme-color" content="#3b82f6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CBT">
+  <link rel="apple-touch-icon" href="https://placehold.co/192x192/3b82f6/ffffff?text=CBT">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+:root {
+  --bg:       #0f172a;
+  --surface:  #1e293b;
+  --surface2: #334155;
+  --primary:  #3b82f6;
+  --primary2: #60a5fa;
+  --accent:   #f59e0b;
+  --danger:   #ef4444;
+  --success:  #22c55e;
+  --text:     #f1f5f9;
+  --muted:    #94a3b8;
+  --border:   #334155;
+  --font:     'Outfit', sans-serif;
+  --mono:     'Space Mono', monospace;
+}
+
+html, body {
+  height:100%; width:100%;
+  overflow:hidden;
+  background:var(--bg); color:var(--text);
+  font-family:var(--font);
+  -webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
+  /* Cegah seleksi teks di layar soal */
+  -webkit-user-select:none; user-select:none;
+}
+
+/* Izinkan seleksi pada input saja */
+input, textarea { -webkit-user-select:text; user-select:text; }
+
+#app {
+  height:100dvh; display:flex; flex-direction:column;
+  overflow:hidden; position:relative;
+}
+
+.screen { display:none; flex-direction:column; height:100%; animation:fadeIn .3s ease; }
+.screen.active { display:flex; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Buttons ── */
+.btn {
+  width:100%; padding:17px;
+  border:none; border-radius:14px;
+  font-size:16px; font-weight:700;
+  font-family:var(--font); cursor:pointer;
+  transition:all .2s; position:relative; overflow:hidden;
+}
+.btn-primary { background:linear-gradient(135deg,var(--primary),#6366f1); color:white; box-shadow:0 4px 20px rgba(59,130,246,.35); }
+.btn-primary:active { transform:scale(.97); }
+.btn-primary:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+.btn-secondary { background:var(--surface); color:var(--text); border:1.5px solid var(--border); }
+.btn-secondary:active { transform:scale(.97); }
+.btn-danger { background:rgba(239,68,68,.15); color:#fca5a5; border:1.5px solid rgba(239,68,68,.3); }
+
+input {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:12px; padding:16px 18px;
+  font-size:16px; font-family:var(--font);
+  color:var(--text); width:100%; outline:none;
+  transition:border-color .2s, box-shadow .2s;
+}
+input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,.2); }
+input::placeholder { color:var(--surface2); }
+label { font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+
+.alert { padding:14px 16px; border-radius:12px; font-size:14px; font-weight:500; display:none; gap:10px; align-items:flex-start; }
+.alert.show { display:flex; }
+.alert-error   { background:rgba(239,68,68,.12); color:#fca5a5; border:1px solid rgba(239,68,68,.25); }
+.alert-success { background:rgba(34,197,94,.12);  color:#86efac; border:1px solid rgba(34,197,94,.25); }
+.alert-warn    { background:rgba(245,158,11,.12); color:#fcd34d; border:1px solid rgba(245,158,11,.25); }
+
+.toast {
+  position:fixed; bottom:32px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--surface2); color:var(--text);
+  padding:12px 20px; border-radius:100px;
+  font-size:14px; font-weight:500; white-space:nowrap;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  z-index:9999; box-shadow:0 8px 32px rgba(0,0,0,.4); pointer-events:none;
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ══════════════════════════════════════════════════
+   SCREENS: SPLASH / LOGIN / TOKEN / READY
+   (sama dengan Tahap 2 — CSS dipertahankan)
+══════════════════════════════════════════════════ */
+#screen-splash { align-items:center; justify-content:center; gap:24px; }
+.splash-logo { width:96px; height:96px; background:linear-gradient(135deg,var(--primary),#8b5cf6); border-radius:28px; display:flex; align-items:center; justify-content:center; font-size:42px; color:white; box-shadow:0 0 40px rgba(59,130,246,.4); animation:puls 2s infinite; }
+@keyframes puls { 0%,100%{box-shadow:0 0 40px rgba(59,130,246,.4)} 50%{box-shadow:0 0 60px rgba(59,130,246,.7)} }
+.splash-title { font-size:28px; font-weight:900; letter-spacing:-1px; background:linear-gradient(to right,var(--primary2),#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.splash-loader { display:flex; gap:8px; margin-top:16px; }
+.splash-dot { width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bnc .8s infinite; }
+.splash-dot:nth-child(2){animation-delay:.15s} .splash-dot:nth-child(3){animation-delay:.30s}
+@keyframes bnc { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(-10px);opacity:1} }
+
+#screen-login { overflow-y:auto; }
+.login-header { padding:56px 28px 32px; background:linear-gradient(180deg,#1a2744 0%,var(--bg) 100%); text-align:center; flex-shrink:0; }
+.login-icon { width:72px; height:72px; background:linear-gradient(135deg,var(--primary),#6366f1); border-radius:20px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; font-size:32px; box-shadow:0 8px 32px rgba(59,130,246,.3); }
+.login-title { font-size:26px; font-weight:800; letter-spacing:-.5px; }
+.login-sub { font-size:13px; color:var(--muted); margin-top:4px; }
+.login-body { flex:1; padding:28px 24px 40px; display:flex; flex-direction:column; gap:16px; }
+.field-group { display:flex; flex-direction:column; gap:8px; }
+.divider { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:4px 0; }
+.divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+#screen-token { overflow-y:auto; }
+.token-header { padding:32px 24px 24px; background:var(--surface); flex-shrink:0; }
+.user-card { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+.user-avatar { width:52px; height:52px; background:linear-gradient(135deg,#f59e0b,#ef4444); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:white; flex-shrink:0; }
+.user-name { font-size:17px; font-weight:700; }
+.user-nim  { font-size:13px; color:var(--muted); font-family:var(--mono); }
+.token-title { font-size:20px; font-weight:800; margin-bottom:4px; }
+.token-sub { font-size:13px; color:var(--muted); }
+.token-body { flex:1; padding:24px; display:flex; flex-direction:column; gap:16px; }
+.token-input-wrap input { font-family:var(--mono); font-size:20px; font-weight:700; letter-spacing:4px; text-align:center; text-transform:uppercase; padding:20px; }
+
+#screen-ready { overflow-y:auto; }
+.ready-header { padding:40px 24px 28px; background:linear-gradient(135deg,#1e3a5f,#1e293b); text-align:center; flex-shrink:0; }
+.ready-badge  { display:inline-flex; align-items:center; gap:6px; background:rgba(34,197,94,.15); color:var(--success); border:1px solid rgba(34,197,94,.3); padding:6px 14px; border-radius:100px; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; }
+.ready-mk     { font-size:24px; font-weight:900; letter-spacing:-.5px; margin-bottom:6px; }
+.ready-sub    { font-size:13px; color:var(--muted); }
+.info-grid    { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:24px; }
+.info-card    { background:var(--surface); border-radius:14px; padding:18px 16px; border:1px solid var(--border); }
+.ic-label     { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.ic-value     { font-size:22px; font-weight:800; color:var(--primary2); }
+.ic-unit      { font-size:12px; color:var(--muted); margin-left:2px; }
+.rules-box    { margin:0 24px; background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.2); border-radius:14px; padding:18px; }
+.rules-title  { font-size:13px; font-weight:700; color:#fca5a5; margin-bottom:12px; }
+.rules-list   { list-style:none; display:flex; flex-direction:column; gap:8px; }
+.rules-list li{ font-size:13px; color:#fca5a5; display:flex; gap:8px; align-items:flex-start; }
+.rules-list li::before { content:'⚠'; font-size:12px; flex-shrink:0; }
+.ready-footer { padding:24px; padding-bottom:max(24px,env(safe-area-inset-bottom)); flex-shrink:0; }
+.server-timer { text-align:center; font-family:var(--mono); font-size:13px; color:var(--muted); margin-bottom:16px; }
+.server-timer span { color:var(--accent); font-weight:700; }
+
+/* ══════════════════════════════════════════════════
+   SCREEN: SOAL
+══════════════════════════════════════════════════ */
+#screen-soal { overflow:hidden; }
+
+/* ── Header: Timer + Pelanggaran ── */
+.soal-header {
+  background:var(--surface);
+  padding:10px 16px 0;
+  flex-shrink:0;
+  border-bottom:1px solid var(--border);
+}
+.header-row1 { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+
+.timer-box {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg); padding:7px 12px;
+  border-radius:10px; border:1px solid var(--border);
+}
+.timer-dot { width:8px; height:8px; border-radius:50%; background:var(--success); animation:blink 1s infinite; }
+.timer-dot.warning { background:var(--accent); }
+.timer-dot.danger  { background:var(--danger); animation:blink .4s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+#timer-display { font-family:var(--mono); font-size:18px; font-weight:700; color:var(--text); min-width:70px; }
+#timer-display.warning { color:var(--accent); }
+#timer-display.danger  { color:var(--danger); }
+
+/* Indikator Pelanggaran */
+.violation-badge {
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg); padding:7px 12px;
+  border-radius:10px; border:1px solid var(--border);
+  cursor:default;
+}
+.vb-dots { display:flex; gap:4px; }
+.vb-dot {
+  width:10px; height:10px; border-radius:50%;
+  background:var(--border);
+  transition:background .3s, transform .3s;
+}
+.vb-dot.hit { background:var(--danger); transform:scale(1.2); }
+.vb-dot.warn { background:var(--accent); }
+.vb-label { font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.5px; }
+
+.soal-counter { font-size:13px; color:var(--muted); font-weight:500; text-align:right; }
+.soal-counter strong { color:var(--text); font-size:15px; }
+
+.header-row2 { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+
+.progress-bar-wrap {
+  height:3px; background:var(--border);
+  margin:0 -16px; overflow:hidden;
+}
+.progress-bar-fill {
+  height:100%;
+  background:linear-gradient(90deg,var(--primary),#6366f1);
+  transition:width .4s ease;
+}
+
+/* ── Nomor soal ── */
+.nomor-scroll-wrap {
+  background:var(--bg); padding:8px 16px;
+  flex-shrink:0; overflow-x:auto;
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+.nomor-scroll-wrap::-webkit-scrollbar { display:none; }
+.nomor-grid { display:flex; gap:5px; width:max-content; }
+.nomor-btn {
+  width:32px; height:32px; border-radius:8px;
+  font-size:11px; font-weight:700;
+  border:1.5px solid var(--border);
+  background:var(--surface); color:var(--muted);
+  cursor:pointer; flex-shrink:0; transition:all .15s; font-family:var(--font);
+}
+.nomor-btn.dijawab   { background:var(--primary); color:white; border-color:var(--primary); }
+.nomor-btn.aktif     { border-color:var(--accent); color:var(--accent); transform:scale(1.12); }
+.nomor-btn.dijawab.aktif { background:#0ea5e9; border-color:var(--accent); color:white; }
+
+.skip-info { text-align:center; font-size:12px; color:var(--muted); padding:4px 16px 0; flex-shrink:0; }
+
+/* ── Body soal ── */
+.soal-body { flex:1; overflow-y:auto; padding:18px 20px 8px; -webkit-overflow-scrolling:touch; }
+
+.tingkat-badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-bottom:12px; }
+.tingkat-mudah  { background:rgba(34,197,94,.12);  color:#86efac; }
+.tingkat-sedang { background:rgba(245,158,11,.12); color:#fcd34d; }
+.tingkat-sulit  { background:rgba(239,68,68,.12);  color:#fca5a5; }
+
+.pertanyaan-text { font-size:16px; line-height:1.65; font-weight:500; color:var(--text); margin-bottom:20px; }
+
+.opsi-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+.opsi-btn {
+  display:flex; align-items:center; gap:14px;
+  background:var(--surface); border:2px solid var(--border);
+  border-radius:14px; padding:15px; cursor:pointer; text-align:left;
+  transition:all .2s; font-family:var(--font); width:100%;
+}
+.opsi-btn:active { transform:scale(.98); }
+.opsi-btn.selected { background:rgba(59,130,246,.12); border-color:var(--primary); }
+.opsi-kode {
+  width:32px; height:32px; border-radius:8px; background:var(--surface2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:800; flex-shrink:0; transition:all .2s; color:var(--muted);
+}
+.opsi-btn.selected .opsi-kode { background:var(--primary); color:white; }
+.opsi-teks { font-size:15px; font-weight:500; line-height:1.45; color:var(--text); }
+
+/* ── Footer navigasi ── */
+.soal-footer {
+  background:var(--surface); padding:12px 16px;
+  padding-bottom:max(12px,env(safe-area-inset-bottom));
+  display:flex; gap:10px; flex-shrink:0;
+  border-top:1px solid var(--border);
+}
+.btn-nav { flex:1; padding:13px 0; border:none; border-radius:12px; font-size:15px; font-weight:700; font-family:var(--font); cursor:pointer; transition:all .2s; }
+.btn-prev { background:var(--surface2); color:var(--muted); }
+.btn-prev:active { transform:scale(.97); }
+.btn-next { background:linear-gradient(135deg,var(--primary),#6366f1); color:white; flex:1.5; }
+.btn-next:active { transform:scale(.97); }
+.btn-submit-final { background:linear-gradient(135deg,var(--success),#16a34a); color:white; flex:1.5; }
+.btn-submit-final:active { transform:scale(.97); }
+
+/* ══════════════════════════════════════════════════
+   SCREEN: SUBMIT / HASIL
+══════════════════════════════════════════════════ */
+#screen-submit { align-items:center; justify-content:center; gap:20px; }
+.submit-icon { font-size:64px; animation:flt 2s infinite ease-in-out; }
+@keyframes flt { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.submit-title { font-size:22px; font-weight:800; }
+.submit-sub   { font-size:14px; color:var(--muted); }
+
+#screen-hasil { overflow-y:auto; }
+.hasil-header { padding:48px 24px 32px; background:linear-gradient(180deg,#1a2744,var(--bg)); text-align:center; flex-shrink:0; }
+.nilai-circle {
+  width:140px; height:140px; border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  margin:0 auto 20px; border:4px solid var(--primary);
+  background:radial-gradient(circle at 30% 30%,rgba(59,130,246,.2),transparent);
+}
+.nilai-angka { font-size:44px; font-weight:900; font-family:var(--mono); line-height:1; }
+.nilai-label { font-size:12px; color:var(--muted); letter-spacing:1px; }
+.predikat     { font-size:22px; font-weight:800; margin-bottom:6px; }
+.predikat-sub { font-size:14px; color:var(--muted); }
+.hasil-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; padding:20px 20px 0; }
+.hasil-card { background:var(--surface); border-radius:12px; padding:16px 12px; text-align:center; border:1px solid var(--border); }
+.hc-val  { font-size:26px; font-weight:800; margin-bottom:4px; }
+.hc-lab  { font-size:11px; color:var(--muted); letter-spacing:.5px; }
+.hc-benar  { color:var(--success); }
+.hc-salah  { color:var(--danger); }
+.hc-kosong { color:var(--accent); }
+.hasil-info { margin:16px 20px 0; background:var(--surface); border-radius:14px; padding:16px; border:1px solid var(--border); }
+.hasil-info-row { display:flex; justify-content:space-between; font-size:14px; padding:8px 0; border-bottom:1px solid var(--border); }
+.hasil-info-row:last-child { border:none; }
+.hi-lab { color:var(--muted); }
+.hi-val { font-weight:600; }
+.hasil-footer { padding:24px; padding-bottom:max(24px,env(safe-area-inset-bottom)); }
+
+/* ══════════════════════════════════════════════════
+   ANTI-CHEAT OVERLAYS
+══════════════════════════════════════════════════ */
+
+/* ── Overlay 1: Peringatan Ringan (bawah layar) ── */
+#warning-banner {
+  position:fixed; bottom:0; left:0; right:0; z-index:8000;
+  background:linear-gradient(135deg, #78350f, #92400e);
+  border-top:2px solid var(--accent);
+  padding:14px 20px;
+  padding-bottom:max(14px,env(safe-area-inset-bottom));
+  display:none; align-items:center; gap:12px;
+  animation:slideUpWarn .3s ease;
+}
+@keyframes slideUpWarn { from{transform:translateY(100%)} to{transform:translateY(0)} }
+#warning-banner.show { display:flex; }
+#warning-banner .wb-icon { font-size:28px; flex-shrink:0; }
+#warning-banner .wb-text .wb-title { font-size:14px; font-weight:800; color:#fcd34d; }
+#warning-banner .wb-text .wb-sub   { font-size:12px; color:#fde68a; margin-top:2px; }
+#warning-banner .wb-count { margin-left:auto; background:rgba(239,68,68,.3); border:1px solid var(--danger); border-radius:8px; padding:6px 12px; text-align:center; flex-shrink:0; }
+#warning-banner .wb-count .wc-num  { font-size:20px; font-weight:900; color:#fca5a5; font-family:var(--mono); line-height:1; }
+#warning-banner .wb-count .wc-lab  { font-size:10px; color:#fca5a5; }
+#warning-banner .wb-close { background:none; border:none; color:#fde68a; font-size:22px; cursor:pointer; padding:4px; flex-shrink:0; }
+
+/* ── Overlay 2: Peringatan Keras (full screen) ── */
+#warning-overlay {
+  position:fixed; inset:0; z-index:9000;
+  background:rgba(0,0,0,.92);
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px; text-align:center;
+  animation:pulseRed .6s ease;
+}
+@keyframes pulseRed { 0%,100%{background:rgba(0,0,0,.92)} 50%{background:rgba(100,0,0,.92)} }
+#warning-overlay.show { display:flex; }
+
+.wo-icon { font-size:72px; margin-bottom:20px; animation:shake .5s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
+
+.wo-title {
+  font-size:26px; font-weight:900; color:#fca5a5;
+  margin-bottom:8px; letter-spacing:-0.5px;
+}
+.wo-sub { font-size:15px; color:var(--muted); line-height:1.6; margin-bottom:24px; }
+.wo-count-wrap { background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); border-radius:16px; padding:20px 28px; margin-bottom:28px; }
+.wo-count-label { font-size:12px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+.wo-count-num   { font-size:40px; font-weight:900; font-family:var(--mono); color:var(--danger); line-height:1; }
+.wo-dots { display:flex; gap:10px; justify-content:center; margin-bottom:4px; }
+.wo-dot { width:16px; height:16px; border-radius:50%; background:var(--border); transition:all .3s; }
+.wo-dot.hit { background:var(--danger); box-shadow:0 0 12px var(--danger); }
+.wo-dot.warn { background:var(--accent); }
+.wo-count-sub   { font-size:13px; color:#fca5a5; margin-top:8px; }
+
+#btn-wo-kembali {
+  background:linear-gradient(135deg,#ef4444,#dc2626); color:white;
+  border:none; border-radius:14px; padding:16px 40px;
+  font-size:16px; font-weight:700; font-family:var(--font); cursor:pointer;
+  box-shadow:0 4px 20px rgba(239,68,68,.4);
+}
+
+/* ── Overlay 3: Force Submit (tidak bisa ditutup) ── */
+#force-overlay {
+  position:fixed; inset:0; z-index:9500;
+  background:#0f172a;
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px; text-align:center;
+}
+#force-overlay.show { display:flex; }
+.fo-icon  { font-size:80px; margin-bottom:24px; }
+.fo-title { font-size:24px; font-weight:900; color:var(--danger); margin-bottom:8px; }
+.fo-sub   { font-size:15px; color:var(--muted); line-height:1.6; }
+
+/* ── Overlay 4: Layar Blur saat app tidak fokus ── */
+#blur-overlay {
+  position:fixed; inset:0; z-index:8500;
+  background:rgba(15,23,42,.97);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px; text-align:center;
+  z-index:8500;
+}
+#blur-overlay.show { display:flex; }
+.bo-icon  { font-size:56px; margin-bottom:16px; animation:spin 2s linear infinite; }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.bo-title { font-size:22px; font-weight:800; margin-bottom:8px; }
+.bo-sub   { font-size:14px; color:var(--muted); }
+
+/* ── Sync indicator ── */
+#sync-indicator {
+  position:fixed; top:8px; right:8px;
+  display:flex; align-items:center; gap:4px;
+  background:rgba(0,0,0,.5); border-radius:100px;
+  padding:4px 8px; font-size:11px; color:var(--muted);
+  z-index:100; pointer-events:none;
+  opacity:0; transition:opacity .3s;
+}
+#sync-indicator.show { opacity:1; }
+.sync-dot { width:6px; height:6px; border-radius:50%; background:var(--success); }
+.sync-dot.syncing { animation:blink .5s infinite; background:var(--accent); }
+
+/* ── Modal konfirmasi ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:9000; align-items:center; justify-content:center; padding:24px; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:var(--surface); border-radius:20px; padding:28px 24px; width:100%; max-width:380px; border:1px solid var(--border); animation:fadeIn .25s ease; }
+.modal-title { font-size:20px; font-weight:800; margin-bottom:8px; }
+.modal-body  { font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:20px; }
+.modal-actions { display:flex; gap:10px; }
+.modal-actions .btn { flex:1; padding:14px; }
+
+/* ── Install Banner ── */
+#install-banner { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(135deg,var(--primary),#6366f1); padding:16px 20px; padding-bottom:max(16px,env(safe-area-inset-bottom)); display:none; align-items:center; gap:12px; z-index:7000; animation:slideUp .4s ease; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+#install-banner.show { display:flex; }
+.ib-text { flex:1; }
+.ib-title { font-size:14px; font-weight:700; color:white; }
+.ib-sub   { font-size:12px; color:rgba(255,255,255,.75); }
+.btn-install { background:white; color:var(--primary); border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0; font-family:var(--font); }
+.btn-dismiss { background:none; border:none; color:rgba(255,255,255,.7); font-size:20px; cursor:pointer; padding:4px; }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SPLASH -->
+<div id="screen-splash" class="screen active">
+  <div class="splash-logo">📝</div>
+  <div>
+    <div class="splash-title">CBT Universitas</div>
+    <div style="text-align:center;font-size:14px;color:var(--muted);margin-top:6px">Computer Based Test</div>
+  </div>
+  <div class="splash-loader">
+    <div class="splash-dot"></div><div class="splash-dot"></div><div class="splash-dot"></div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen">
+  <div class="login-header">
+    <div class="login-icon">📋</div>
+    <div class="login-title">Masuk ke CBT</div>
+    <div class="login-sub">Gunakan NIM dan password dari pengawas</div>
+  </div>
+  <div class="login-body">
+    <div id="alert-login" class="alert"><span id="alert-login-msg"></span></div>
+    <div class="field-group">
+      <label>NIM</label>
+      <input type="text" id="inp-nim" placeholder="Nomor Induk Mahasiswa" inputmode="numeric" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input type="password" id="inp-pass" placeholder="Password ujian">
+    </div>
+    <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Masuk</button>
+    <div class="divider">info</div>
+    <div style="text-align:center;font-size:13px;color:var(--muted)">Hubungi pengawas jika tidak bisa masuk</div>
+  </div>
+</div>
+
+<!-- TOKEN -->
+<div id="screen-token" class="screen">
+  <div class="token-header">
+    <div class="user-card">
+      <div class="user-avatar" id="tok-avatar">?</div>
+      <div><div class="user-name" id="tok-nama">—</div><div class="user-nim" id="tok-nim">NIM: —</div></div>
+    </div>
+    <div class="token-title">Masukkan Token Ujian</div>
+    <div class="token-sub">Token diberikan dosen/pengawas saat ujian dimulai</div>
+  </div>
+  <div class="token-body">
+    <div id="alert-token" class="alert"><span id="alert-token-msg"></span></div>
+    <div class="field-group">
+      <label>Kode Token</label>
+      <div class="token-input-wrap">
+        <input type="text" id="inp-token" placeholder="•  •  •  •  •  •  •  •" maxlength="12" autocomplete="off" spellcheck="false" inputmode="text" oninput="this.value=this.value.toUpperCase()">
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-token" onclick="doVerifyToken()">Verifikasi Token</button>
+    <button class="btn btn-secondary" onclick="doLogout()">Ganti Akun</button>
+  </div>
+</div>
+
+<!-- READY -->
+<div id="screen-ready" class="screen">
+  <div class="ready-header">
+    <div class="ready-badge">✅ Token Valid</div>
+    <div class="ready-mk" id="rdy-mk">—</div>
+    <div class="ready-sub" id="rdy-sub">—</div>
+  </div>
+  <div class="info-grid">
+    <div class="info-card"><div class="ic-label">Durasi</div><div class="ic-value" id="rdy-durasi">—</div></div>
+    <div class="info-card"><div class="ic-label">Sisa Waktu</div><div class="ic-value" id="rdy-sisa" style="font-size:18px">—</div></div>
+  </div>
+  <div class="rules-box">
+    <div class="rules-title">⚠ Sistem Anti-Kecurangan Aktif</div>
+    <ul class="rules-list">
+      <li>Jangan pindah aplikasi — pelanggaran otomatis tercatat</li>
+      <li>Maksimal <strong>5 pelanggaran</strong> → ujian dikumpulkan paksa</li>
+      <li>Screenshot, copy, klik kanan = pelanggaran</li>
+      <li>Ujian auto-submit saat waktu habis (sync server)</li>
+      <li>Semua aktivitas dipantau dan dilaporkan ke dosen</li>
+    </ul>
+  </div>
+  <div class="ready-footer">
+    <div class="server-timer">Sisa waktu: <span id="countdown-display">—</span></div>
+    <button class="btn btn-primary" id="btn-mulai" onclick="doMulai()">🚀 Mulai Ujian Sekarang</button>
+  </div>
+</div>
+
+<!-- SOAL (ENGINE) -->
+<div id="screen-soal" class="screen">
+
+  <div class="soal-header">
+    <div class="header-row1">
+      <div class="timer-box">
+        <div class="timer-dot" id="timer-dot"></div>
+        <div id="timer-display">00:00</div>
+      </div>
+      <!-- Indikator pelanggaran: 5 titik -->
+      <div class="violation-badge" title="Pelanggaran tercatat">
+        <div class="vb-dots" id="vb-dots">
+          <div class="vb-dot" id="vd-1"></div>
+          <div class="vb-dot" id="vd-2"></div>
+          <div class="vb-dot" id="vd-3"></div>
+          <div class="vb-dot" id="vd-4"></div>
+          <div class="vb-dot" id="vd-5"></div>
+        </div>
+        <div class="vb-label">PELANGGARAN</div>
+      </div>
+      <div class="soal-counter">Soal <strong id="nomor-aktif">1</strong>/<span id="total-soal">0</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="nomor-scroll-wrap">
+    <div class="nomor-grid" id="nomor-grid"></div>
+  </div>
+  <div class="skip-info" id="skip-info"></div>
+  <div class="soal-body" id="soal-body"></div>
+  <div class="soal-footer">
+    <button class="btn-nav btn-prev" id="btn-prev" onclick="navSoal(-1)">← Prev</button>
+    <button class="btn-nav btn-next" id="btn-next" onclick="navSoal(1)">Next →</button>
+    <button class="btn-nav btn-submit-final" id="btn-submit-soal" onclick="confirmSubmit()" style="display:none">✓ Kumpulkan</button>
+  </div>
+</div>
+
+<!-- SUBMIT LOADING -->
+<div id="screen-submit" class="screen">
+  <div class="submit-icon">📤</div>
+  <div class="submit-title">Mengumpulkan Jawaban...</div>
+  <div class="submit-sub">Mohon tunggu, jangan tutup aplikasi</div>
+</div>
+
+<!-- HASIL -->
+<div id="screen-hasil" class="screen">
+  <div class="hasil-header">
+    <div class="nilai-circle">
+      <div class="nilai-angka" id="hasil-nilai">0</div>
+      <div class="nilai-label">NILAI</div>
+    </div>
+    <div class="predikat" id="hasil-predikat">—</div>
+    <div class="predikat-sub" id="hasil-mk">—</div>
+  </div>
+  <div class="hasil-grid">
+    <div class="hasil-card"><div class="hc-val hc-benar" id="hasil-benar">0</div><div class="hc-lab">✓ Benar</div></div>
+    <div class="hasil-card"><div class="hc-val hc-salah" id="hasil-salah">0</div><div class="hc-lab">✗ Salah</div></div>
+    <div class="hasil-card"><div class="hc-val hc-kosong" id="hasil-kosong">0</div><div class="hc-lab">— Kosong</div></div>
+  </div>
+  <div class="hasil-info">
+    <div class="hasil-info-row"><span class="hi-lab">Mata Kuliah</span><span class="hi-val" id="hi-mk">—</span></div>
+    <div class="hasil-info-row"><span class="hi-lab">Total Soal</span><span class="hi-val" id="hi-total">—</span></div>
+    <div class="hasil-info-row"><span class="hi-lab">Mode Submit</span><span class="hi-val" id="hi-mode">—</span></div>
+    <div class="hasil-info-row"><span class="hi-lab">Pelanggaran</span><span class="hi-val" id="hi-pelanggaran">0</span></div>
+  </div>
+  <div class="hasil-footer">
+    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:16px">Ujian selesai. Serahkan perangkat ke pengawas.</div>
+    <button class="btn btn-secondary" onclick="resetAplikasi()">Kembali ke Awal</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<!-- ═══════════════ ANTI-CHEAT OVERLAYS ═══════════════ -->
+
+<!-- Warning Banner (ringan) -->
+<div id="warning-banner">
+  <div class="wb-icon">⚠️</div>
+  <div class="wb-text">
+    <div class="wb-title" id="wb-title">Pelanggaran Terdeteksi!</div>
+    <div class="wb-sub" id="wb-sub">Aktifitas mencurigakan dicatat.</div>
+  </div>
+  <div class="wb-count">
+    <div class="wc-num" id="wb-num">1</div>
+    <div class="wc-lab">/ 5</div>
+  </div>
+  <button class="wb-close" onclick="closeWarningBanner()">✕</button>
+</div>
+
+<!-- Warning Overlay (keras) -->
+<div id="warning-overlay">
+  <div class="wo-icon">🚨</div>
+  <div class="wo-title">PERINGATAN KERAS!</div>
+  <div class="wo-sub" id="wo-sub">Perilaku mencurigakan terdeteksi.<br>Pelanggaran ini telah dicatat dan akan dilaporkan kepada dosen.</div>
+  <div class="wo-count-wrap">
+    <div class="wo-count-label">Total Pelanggaran</div>
+    <div class="wo-dots" id="wo-dots">
+      <div class="wo-dot" id="wo-d1"></div>
+      <div class="wo-dot" id="wo-d2"></div>
+      <div class="wo-dot" id="wo-d3"></div>
+      <div class="wo-dot" id="wo-d4"></div>
+      <div class="wo-dot" id="wo-d5"></div>
+    </div>
+    <div class="wo-count-num" id="wo-num">0</div>
+    <div class="wo-count-sub" id="wo-remaining">Sisa kesempatan: —</div>
+  </div>
+  <button id="btn-wo-kembali" onclick="closeWarningOverlay()">Kembali ke Ujian</button>
+</div>
+
+<!-- Force Submit Overlay (tidak bisa ditutup) -->
+<div id="force-overlay">
+  <div class="fo-icon">🔒</div>
+  <div class="fo-title">UJIAN DIKUNCI</div>
+  <div class="fo-sub">Terlalu banyak pelanggaran terdeteksi.<br>Jawaban Anda dikumpulkan secara otomatis.<br><br>Hubungi pengawas untuk informasi lebih lanjut.</div>
+</div>
+
+<!-- Blur Overlay (saat app tidak fokus) -->
+<div id="blur-overlay">
+  <div class="bo-icon">🔍</div>
+  <div class="bo-title">Fokus ke Ujian!</div>
+  <div class="bo-sub">Kembali ke aplikasi untuk melanjutkan ujian.<br>Ketidakhadiran telah dicatat.</div>
+</div>
+
+<!-- Modal Konfirmasi Submit -->
+<div class="modal-overlay" id="modal-submit">
+  <div class="modal-box">
+    <div class="modal-title">⚠ Kumpulkan Jawaban?</div>
+    <div class="modal-body" id="modal-body">Yakin ingin mengumpulkan sekarang?</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary"   onclick="doSubmitFinal('manual')">Ya, Kumpulkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Install Banner -->
+<div id="install-banner">
+  <div class="ib-text"><div class="ib-title">Install Aplikasi CBT</div><div class="ib-sub">Tambah ke Home Screen</div></div>
+  <button class="btn-install" onclick="doInstall()">Install</button>
+  <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- Sync Indicator -->
+<div id="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">Sync</span></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════
+const API_URL           = "URL_DEPLOYMENT_APPS_SCRIPT_ANDA";
+const MAX_PELANGGARAN   = 5;
+const WARN_PELANGGARAN  = 3;
+const TIMER_SYNC_SEC    = 30; // Sinkronisasi timer tiap 30 detik
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+let S = {
+  nim:null, nama:null, prodi:null,
+  token:null, mataKuliah:null, durasi:null, sisaDetik:null,
+  sesiId:null, soal:[], jawaban:{}, soalAktif:0,
+  pelanggaranCount:0, forceSubmitted:false,
+};
+
+let timerInterval  = null;
+let countdownTimer = null;
+let syncTimerInt   = null;
+let saveQueue      = {};
+let warningBannerTimer = null;
+
+// ════════════════════════════════════════════════
+//  SCREEN MANAGER
+// ════════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if ('serviceWorker' in navigator)
+    navigator.serviceWorker.register(API_URL + '?sw=1').catch(() => {});
+
+  const saved = sessionStorage.getItem('cbt_state');
+  if (saved) try { Object.assign(S, JSON.parse(saved)); } catch(e) {}
+
+  setTimeout(() => {
+    if (S.nim && S.nama) { updateTokenScreen(); showScreen('token'); }
+    else showScreen('login');
+  }, 1800);
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); window._installPrompt = e;
+    document.getElementById('install-banner').classList.add('show');
+  });
+
+  initAntiCheat();
+});
+
+// ════════════════════════════════════════════════
+//  API
+// ════════════════════════════════════════════════
+async function apiCall(payload) {
+  const res = await fetch(API_URL, {
+    method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════
+async function doLogin() {
+  const nim  = document.getElementById('inp-nim').value.trim();
+  const pass = document.getElementById('inp-pass').value.trim();
+  if (!nim || !pass) { showAlert('login','error','⚠ NIM dan password wajib diisi.'); return; }
+
+  const btn = document.getElementById('btn-login');
+  setLoading(btn, true, 'Memverifikasi...');
+  hideAlert('login');
+  try {
+    const res = await apiCall({ action:'login', nim, password:pass });
+    if (res.ok) {
+      S.nim=res.nim; S.nama=res.nama; S.prodi=res.prodi;
+      saveState(); updateTokenScreen();
+      showToast('Selamat datang, ' + res.nama.split(' ')[0] + '!');
+      setTimeout(() => showScreen('token'), 500);
+    } else showAlert('login','error','❌ ' + res.message);
+  } catch(e) { showAlert('login','error','🔌 Koneksi gagal.'); }
+  finally { setLoading(btn, false, 'Masuk'); }
+}
+
+async function doVerifyToken() {
+  const token = document.getElementById('inp-token').value.trim().toUpperCase();
+  if (!token) { showAlert('token','error','⚠ Token wajib diisi.'); return; }
+  const btn = document.getElementById('btn-token');
+  setLoading(btn, true, 'Memverifikasi...'); hideAlert('token');
+  try {
+    const res = await apiCall({ action:'verifyToken', nim:S.nim, token });
+    if (res.ok) {
+      S.token=res.tokenId; S.mataKuliah=res.mataKuliah;
+      S.durasi=res.durasi; S.sisaDetik=res.sisaDetik;
+      saveState(); updateReadyScreen();
+      showToast('Token valid — ' + res.mataKuliah);
+      setTimeout(() => showScreen('ready'), 500);
+    } else showAlert('token','error','❌ ' + res.message);
+  } catch(e) { showAlert('token','error','🔌 Koneksi gagal.'); }
+  finally { setLoading(btn, false, 'Verifikasi Token'); }
+}
+
+// ════════════════════════════════════════════════
+//  MULAI UJIAN
+// ════════════════════════════════════════════════
+async function doMulai() {
+  const btn = document.getElementById('btn-mulai');
+  setLoading(btn, true, 'Memuat soal...');
+  try {
+    const res = await apiCall({ action:'startUjian', nim:S.nim, token:S.token });
+    if (!res.ok) { showToast('❌ ' + res.message); setLoading(btn,false,'🚀 Mulai Ujian Sekarang'); return; }
+
+    S.sesiId=res.sesiId; S.soal=res.soal;
+    S.jawaban=res.jawaban||{}; S.sisaDetik=res.sisaDetik;
+    S.soalAktif=0; S.pelanggaranCount=res.pelanggaranCount||0;
+    S.forceSubmitted=false;
+    saveState();
+
+    if (res.resume) showToast('Melanjutkan ujian...');
+    else showToast('Ujian dimulai! ' + res.jumlahSoal + ' soal.');
+
+    // Minta fullscreen
+    requestFullscreen();
+
+    initSoalEngine();
+    showScreen('soal');
+    startTimer(S.sisaDetik);
+    startTimerSync();
+    updateViolationIndicator(S.pelanggaranCount);
+
+  } catch(e) { showToast('❌ Gagal memuat soal. Periksa koneksi.'); }
+  finally { setLoading(btn, false, '🚀 Mulai Ujian Sekarang'); }
+}
+
+// ════════════════════════════════════════════════
+//  ENGINE SOAL
+// ════════════════════════════════════════════════
+function initSoalEngine() {
+  renderNomorGrid();
+  renderSoal(S.soalAktif);
+}
+
+function renderNomorGrid() {
+  const grid = document.getElementById('nomor-grid');
+  grid.innerHTML = '';
+  S.soal.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'nomor-btn' +
+      (S.jawaban[s.id] ? ' dijawab' : '') +
+      (i === S.soalAktif ? ' aktif' : '');
+    btn.textContent = i + 1;
+    btn.onclick = () => goToSoal(i);
+    grid.appendChild(btn);
+  });
+  scrollNomorAktif();
+}
+
+function renderSoal(idx) {
+  S.soalAktif = idx;
+  const soal  = S.soal[idx];
+  if (!soal) return;
+
+  const total   = S.soal.length;
+  const dijawab = Object.keys(S.jawaban).length;
+  const persen  = Math.round(((idx+1)/total)*100);
+
+  document.getElementById('nomor-aktif').textContent = idx+1;
+  document.getElementById('total-soal').textContent  = total;
+  document.getElementById('progress-fill').style.width = persen + '%';
+
+  const kosong = total - dijawab;
+  document.getElementById('skip-info').textContent =
+    kosong > 0 ? kosong + ' soal belum dijawab' : '✓ Semua soal sudah dijawab';
+
+  renderNomorGrid();
+
+  const isLast = idx === total - 1;
+  document.getElementById('btn-prev').style.opacity = idx===0 ? '0.3' : '1';
+  document.getElementById('btn-prev').disabled      = idx === 0;
+  document.getElementById('btn-next').style.display         = isLast ? 'none' : 'flex';
+  document.getElementById('btn-submit-soal').style.display  = isLast ? 'flex' : 'none';
+
+  const jawaban = S.jawaban[soal.id] || null;
+  document.getElementById('soal-body').innerHTML = `
+    <span class="tingkat-badge tingkat-${soal.tingkat}">${soal.tingkat}</span>
+    <div class="pertanyaan-text">${esc(soal.pertanyaan)}</div>
+    <div class="opsi-list">
+      ${soal.opsi.map(o => `
+        <button class="opsi-btn ${jawaban===o.kode?'selected':''}"
+                onclick="pilihJawaban('${soal.id}','${o.kode}')">
+          <div class="opsi-kode">${o.kode}</div>
+          <div class="opsi-teks">${esc(o.teks)}</div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('soal-body').scrollTop = 0;
+}
+
+function pilihJawaban(soalId, kode) {
+  S.jawaban[soalId] = kode;
+  saveState();
+
+  document.querySelectorAll('.opsi-btn').forEach(b => b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+
+  const idx = S.soal.findIndex(s => s.id === soalId);
+  document.querySelectorAll('.nomor-btn')[idx]?.classList.add('dijawab');
+
+  const kosong = S.soal.length - Object.keys(S.jawaban).length;
+  document.getElementById('skip-info').textContent =
+    kosong > 0 ? kosong + ' soal belum dijawab' : '✓ Semua soal sudah dijawab';
+
+  clearTimeout(saveQueue[soalId]);
+  saveQueue[soalId] = setTimeout(() => {
+    apiCall({ action:'saveJawaban', nim:S.nim, sesiId:S.sesiId, soalId, jawaban:kode }).catch(()=>{});
+  }, 600);
+
+  if (S.soalAktif < S.soal.length - 1)
+    setTimeout(() => navSoal(1), 550);
+}
+
+function navSoal(dir) {
+  const next = S.soalAktif + dir;
+  if (next<0 || next>=S.soal.length) return;
+  goToSoal(next);
+}
+
+function goToSoal(idx) {
+  S.soalAktif = idx; renderSoal(idx);
+}
+
+function scrollNomorAktif() {
+  const btns = document.querySelectorAll('.nomor-btn');
+  btns[S.soalAktif]?.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+}
+
+// ════════════════════════════════════════════════
+//  TIMER
+// ════════════════════════════════════════════════
+function startTimer(detik) {
+  if (timerInterval) clearInterval(timerInterval);
+  let sisa = detik;
+  const el  = () => document.getElementById('timer-display');
+  const dot = () => document.getElementById('timer-dot');
+
+  const render = () => {
+    if (!el()) return;
+    const m=Math.floor(sisa/60), s=sisa%60;
+    el().textContent = pad(m)+':'+pad(s);
+    if (sisa<=300) { el().className='warning'; dot().className='timer-dot warning'; }
+    if (sisa<=60)  { el().className='danger';  dot().className='timer-dot danger';  }
+    if (sisa===60) showToast('⚠ Sisa 1 menit!');
+  };
+
+  render();
+  timerInterval = setInterval(() => {
+    sisa--;
+    render();
+    if (sisa <= 0) {
+      clearInterval(timerInterval);
+      showToast('⏰ Waktu habis! Jawaban dikumpulkan otomatis.');
+      doSubmitFinal('timeout');
+    }
+  }, 1000);
+}
+
+// Sinkronisasi timer dengan server setiap TIMER_SYNC_SEC detik
+function startTimerSync() {
+  if (syncTimerInt) clearInterval(syncTimerInt);
+  syncTimerInt = setInterval(async () => {
+    if (S.forceSubmitted) return;
+    try {
+      showSyncIndicator(true);
+      const res = await apiCall({ action:'syncTimer', nim:S.nim, token:S.token });
+      if (res.ok && !res.expired && res.sisaDetik !== undefined) {
+        // Koreksi drift: update timer dengan waktu server
+        // Restart timer dengan sisa detik dari server
+        startTimer(res.sisaDetik);
+      } else if (res.expired) {
+        clearInterval(syncTimerInt);
+        doSubmitFinal('timeout');
+      }
+      showSyncIndicator(false);
+    } catch(e) { showSyncIndicator(false); }
+  }, TIMER_SYNC_SEC * 1000);
+}
+
+function startCountdown(detik) {
+  if (countdownTimer) clearInterval(countdownTimer);
+  let sisa = detik;
+  const render = () => {
+    const j=Math.floor(sisa/3600), m=Math.floor((sisa%3600)/60), s=sisa%60;
+    const str = (j>0?j+'j ':'') + pad(m)+':'+pad(s);
+    const el1 = document.getElementById('rdy-sisa');
+    const el2 = document.getElementById('countdown-display');
+    if (el1) { el1.textContent=str; el1.style.color=sisa<300?'#ef4444':'var(--primary2)'; }
+    if (el2) el2.textContent=str;
+  };
+  render();
+  countdownTimer = setInterval(() => { sisa--; if(sisa<=0){clearInterval(countdownTimer);return;} render(); }, 1000);
+}
+
+function showSyncIndicator(syncing) {
+  const el  = document.getElementById('sync-indicator');
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!el) return;
+  el.classList.add('show');
+  dot.className = 'sync-dot' + (syncing ? ' syncing' : '');
+  lbl.textContent = syncing ? 'Sync...' : 'Synced';
+  if (!syncing) setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+// ════════════════════════════════════════════════
+//  SUBMIT
+// ════════════════════════════════════════════════
+function confirmSubmit() {
+  const kosong = S.soal.length - Object.keys(S.jawaban).length;
+  document.getElementById('modal-body').innerHTML = kosong > 0
+    ? `Masih ada <strong>${kosong} soal</strong> yang belum dijawab.<br>Yakin ingin mengumpulkan sekarang?`
+    : `Semua soal sudah dijawab ✓<br>Yakin ingin mengumpulkan sekarang?`;
+  document.getElementById('modal-submit').classList.add('show');
+}
+function closeModal() { document.getElementById('modal-submit').classList.remove('show'); }
+
+async function doSubmitFinal(mode) {
+  if (S.forceSubmitted) return;
+  S.forceSubmitted = true;
+  closeModal();
+  clearAllTimers();
+
+  for (const id in saveQueue) clearTimeout(saveQueue[id]);
+  saveQueue = {};
+
+  exitFullscreen();
+  showScreen('submit');
+
+  // Flush jawaban ke server
+  for (const [soalId, jawaban] of Object.entries(S.jawaban)) {
+    try { await apiCall({ action:'saveJawaban', nim:S.nim, sesiId:S.sesiId, soalId, jawaban }); } catch(e) {}
+  }
+
+  try {
+    const res = await apiCall({ action:'submitUjian', nim:S.nim, sesiId:S.sesiId, token:S.token, mode });
+    if (res.ok) { tampilkanHasil(res); showScreen('hasil'); }
+    else { showToast('❌ Submit gagal: ' + res.message); S.forceSubmitted=false; showScreen('soal'); }
+  } catch(e) { showToast('❌ Koneksi gagal saat submit.'); S.forceSubmitted=false; showScreen('soal'); }
+}
+
+function tampilkanHasil(res) {
+  const nilai    = res.nilai;
+  const predikat = nilai>=85?'🏆 Sangat Baik':nilai>=75?'✨ Baik':nilai>=60?'📘 Cukup':'📚 Perlu Belajar Lagi';
+  const circle   = document.querySelector('.nilai-circle');
+  if (circle) circle.style.borderColor = nilai>=75?'var(--success)':nilai>=60?'var(--accent)':'var(--danger)';
+
+  document.getElementById('hasil-nilai').textContent   = nilai;
+  document.getElementById('hasil-predikat').textContent= predikat;
+  document.getElementById('hasil-mk').textContent      = res.mataKuliah;
+  document.getElementById('hasil-benar').textContent   = res.benar;
+  document.getElementById('hasil-salah').textContent   = res.salah;
+  document.getElementById('hasil-kosong').textContent  = res.kosong;
+  document.getElementById('hi-mk').textContent         = res.mataKuliah;
+  document.getElementById('hi-total').textContent      = res.jumlahSoal + ' soal';
+  document.getElementById('hi-mode').textContent       = {
+    'manual':'✋ Manual','timeout':'⏰ Auto (waktu habis)','force_cheat':'🔒 Paksa (pelanggaran)'
+  }[res.mode] || res.mode;
+  document.getElementById('hi-pelanggaran').textContent= (res.pelanggaranCount||S.pelanggaranCount) + ' kali';
+}
+
+// ════════════════════════════════════════════════
+//  ANTI-CHEAT SYSTEM
+// ════════════════════════════════════════════════
+
+function initAntiCheat() {
+  // ① Tab / App switch
+  document.addEventListener('visibilitychange', onVisibilityChange);
+
+  // ② Window blur (desktop)
+  window.addEventListener('blur', onWindowBlur);
+  window.addEventListener('focus', onWindowFocus);
+
+  // ③ Cegah right-click
+  document.addEventListener('contextmenu', e => {
+    if (isUjianAktif()) { e.preventDefault(); recordViolation('RIGHTCLICK', 'Klik kanan', true); }
+  });
+
+  // ④ Cegah copy / cut
+  document.addEventListener('copy', e => {
+    if (isUjianAktif()) { e.preventDefault(); recordViolation('COPY_ATTEMPT', 'Copy', true); }
+  });
+  document.addEventListener('cut', e => {
+    if (isUjianAktif()) { e.preventDefault(); recordViolation('COPY_ATTEMPT', 'Cut', true); }
+  });
+
+  // ⑤ Cegah paste
+  document.addEventListener('paste', e => {
+    if (isUjianAktif()) { e.preventDefault(); recordViolation('PASTE_ATTEMPT', 'Paste', true); }
+  });
+
+  // ⑥ Tombol PrintScreen / screenshot keyboard
+  document.addEventListener('keydown', e => {
+    if (!isUjianAktif()) return;
+    // F12, Ctrl+Shift+I/J/C, Ctrl+U → DevTools
+    if (e.key==='F12' || (e.ctrlKey&&e.shiftKey&&['I','J','C','i','j','c'].includes(e.key)) || (e.ctrlKey&&(e.key==='u'||e.key==='U'))) {
+      e.preventDefault(); recordViolation('DEVTOOLS', 'Keyboard devtools', false);
+    }
+    // PrintScreen
+    if (e.key==='PrintScreen' || e.key==='Print') {
+      recordViolation('SCREENSHOT_KEY', 'Tombol Print Screen', true);
+    }
+    // Cegah Ctrl+A (select all)
+    if (e.ctrlKey && (e.key==='a'||e.key==='A')) { e.preventDefault(); }
+  });
+
+  // ⑦ Deteksi DevTools via ukuran window (desktop)
+  setInterval(detectDevTools, 3000);
+
+  // ⑧ Fullscreen exit detection
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+}
+
+function isUjianAktif() {
+  const active = document.querySelector('.screen.active');
+  return active && active.id === 'screen-soal' && !S.forceSubmitted;
+}
+
+// ─ Visibilitychange ─
+let blurStartTime = null;
+function onVisibilityChange() {
+  if (!isUjianAktif()) return;
+  if (document.hidden) {
+    blurStartTime = Date.now();
+    document.getElementById('blur-overlay').classList.add('show');
+    recordViolation('TAB_SWITCH', 'Tab/app switch', false);
+  } else {
+    document.getElementById('blur-overlay').classList.remove('show');
+    if (blurStartTime) {
+      const detik = Math.round((Date.now()-blurStartTime)/1000);
+      blurStartTime = null;
+      if (detik > 2) showToast('⚠ Absen ' + detik + ' detik. Dicatat!');
+    }
+  }
+}
+
+// ─ Window blur (desktop) ─
+let blurDebounce = null;
+function onWindowBlur() {
+  if (!isUjianAktif()) return;
+  clearTimeout(blurDebounce);
+  blurDebounce = setTimeout(() => {
+    if (!document.hidden) {
+      document.getElementById('blur-overlay').classList.add('show');
+      recordViolation('APP_BLUR', 'Window kehilangan fokus', false);
+    }
+  }, 500);
+}
+function onWindowFocus() {
+  document.getElementById('blur-overlay').classList.remove('show');
+}
+
+// ─ DevTools detection ─
+let devToolsOpen = false;
+function detectDevTools() {
+  if (!isUjianAktif()) return;
+  const threshold = 160;
+  const widthGap  = window.outerWidth  - window.innerWidth;
+  const heightGap = window.outerHeight - window.innerHeight;
+  const isOpen    = widthGap > threshold || heightGap > threshold;
+  if (isOpen && !devToolsOpen) {
+    devToolsOpen = true;
+    recordViolation('DEVTOOLS', 'DevTools terbuka', false);
+  } else if (!isOpen) {
+    devToolsOpen = false;
+  }
+}
+
+// ─ Fullscreen ─
+function requestFullscreen() {
+  const el = document.documentElement;
+  try {
+    if      (el.requestFullscreen)       el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+  } catch(e) {}
+}
+
+function exitFullscreen() {
+  try {
+    if      (document.exitFullscreen)       document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } catch(e) {}
+}
+
+let fullscreenExited = false;
+function onFullscreenChange() {
+  if (!isUjianAktif()) return;
+  const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (!isFS && !fullscreenExited) {
+    fullscreenExited = true;
+    recordViolation('FULLSCREEN_EXIT', 'Keluar dari fullscreen', true);
+    // Minta kembali fullscreen setelah 2 detik
+    setTimeout(() => { fullscreenExited=false; requestFullscreen(); }, 2000);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  RECORD VIOLATION — inti sistem anti-cheat
+// ════════════════════════════════════════════════
+async function recordViolation(jenis, detail, showWarning) {
+  if (!S.sesiId || !S.nim || S.forceSubmitted) return;
+
+  // Update count lokal dulu (responsif)
+  S.pelanggaranCount++;
+  saveState();
+  updateViolationIndicator(S.pelanggaranCount);
+
+  // Tampilkan peringatan
+  if (showWarning || S.pelanggaranCount >= WARN_PELANGGARAN) {
+    if (S.pelanggaranCount >= WARN_PELANGGARAN) {
+      showWarningOverlay(jenis, S.pelanggaranCount);
+    } else {
+      showWarningBanner(jenis, S.pelanggaranCount);
+    }
+  }
+
+  // Kirim ke server
+  try {
+    const res = await apiCall({
+      action:     'logPelanggaran',
+      nim:        S.nim,
+      sesiId:     S.sesiId,
+      jenis,
+      detail,
+      nomorSoal:  S.soalAktif + 1
+    });
+
+    if (res.ok) {
+      S.pelanggaranCount = res.pelanggaranCount;
+      saveState();
+      updateViolationIndicator(res.pelanggaranCount);
+
+      if (res.forceSubmit) {
+        showForceOverlay();
+        return;
+      }
+    }
+  } catch(e) {
+    // Tetap lanjut meskipun server error
+  }
+}
+
+// ── Update visual dots indikator pelanggaran ──
+function updateViolationIndicator(count) {
+  for (let i=1; i<=5; i++) {
+    const dot = document.getElementById('vd-'+i);
+    if (!dot) continue;
+    dot.className = 'vb-dot' +
+      (i <= count ? (count >= WARN_PELANGGARAN ? ' hit' : ' warn') : '');
+  }
+}
+
+// ── Warning Banner (ringan, bisa ditutup) ──
+function showWarningBanner(jenis, count) {
+  const titles = {
+    'TAB_SWITCH':    'Jangan pindah aplikasi!',
+    'APP_BLUR':      'Fokuskan layar ke ujian!',
+    'COPY_ATTEMPT':  'Copy tidak diizinkan!',
+    'PASTE_ATTEMPT': 'Paste tidak diizinkan!',
+    'RIGHTCLICK':    'Klik kanan tidak diizinkan!',
+    'SCREENSHOT_KEY':'Screenshot terdeteksi!',
+    'FULLSCREEN_EXIT':'Tetap di fullscreen!'
+  };
+  const subs = {
+    'TAB_SWITCH':    'Berpindah tab/aplikasi dicatat sebagai pelanggaran.',
+    'APP_BLUR':      'Layar tidak aktif dicatat sebagai pelanggaran.',
+    'COPY_ATTEMPT':  'Aktivitas copy soal dicatat dan dilaporkan.',
+    'PASTE_ATTEMPT': 'Aktivitas paste dicatat dan dilaporkan.',
+    'RIGHTCLICK':    'Klik kanan tidak diperbolehkan selama ujian.',
+    'SCREENSHOT_KEY':'Mencoba screenshot dicatat dan dilaporkan.',
+    'FULLSCREEN_EXIT':'Keluar dari mode fullscreen dicatat.'
+  };
+
+  document.getElementById('wb-title').textContent = titles[jenis] || 'Pelanggaran Terdeteksi!';
+  document.getElementById('wb-sub').textContent   = subs[jenis]   || 'Aktivitas mencurigakan dicatat.';
+  document.getElementById('wb-num').textContent   = count;
+
+  const banner = document.getElementById('warning-banner');
+  banner.classList.add('show');
+  if (warningBannerTimer) clearTimeout(warningBannerTimer);
+  warningBannerTimer = setTimeout(closeWarningBanner, 4000);
+}
+
+function closeWarningBanner() {
+  document.getElementById('warning-banner').classList.remove('show');
+}
+
+// ── Warning Overlay (keras, harus klik tombol) ──
+function showWarningOverlay(jenis, count) {
+  const sisa = MAX_PELANGGARAN - count;
+
+  document.getElementById('wo-num').textContent = count;
+  document.getElementById('wo-remaining').textContent =
+    sisa > 0 ? `⚠ Sisa kesempatan: ${sisa} kali` : `🔒 Ini pelanggaran terakhir!`;
+  document.getElementById('wo-sub').innerHTML =
+    `Perilaku mencurigakan <strong>(${jenis})</strong> terdeteksi.<br>Pelanggaran ini tercatat dan dilaporkan ke dosen.`;
+
+  // Update dots di overlay
+  for (let i=1; i<=5; i++) {
+    const dot = document.getElementById('wo-d'+i);
+    if (dot) dot.className = 'wo-dot' + (i <= count ? ' hit' : (i <= WARN_PELANGGARAN ? ' warn' : ''));
+  }
+
+  document.getElementById('warning-overlay').classList.add('show');
+}
+
+function closeWarningOverlay() {
+  document.getElementById('warning-overlay').classList.remove('show');
+  // Minta fullscreen lagi setelah overlay ditutup
+  requestFullscreen();
+}
+
+// ── Force Submit Overlay (tidak bisa ditutup) ──
+function showForceOverlay() {
+  document.getElementById('warning-overlay').classList.remove('show');
+  document.getElementById('warning-banner').classList.remove('show');
+  document.getElementById('force-overlay').classList.add('show');
+  // Submit sudah dipanggil dari server
+  showScreen('submit');
+  setTimeout(() => {
+    apiCall({ action:'submitUjian', nim:S.nim, sesiId:S.sesiId, token:S.token, mode:'force_cheat' })
+      .then(res => { if(res.ok) { tampilkanHasil(res); showScreen('hasil'); document.getElementById('force-overlay').classList.remove('show'); } })
+      .catch(()=>{});
+  }, 2000);
+}
+
+// ════════════════════════════════════════════════
+//  SCREEN UPDATES
+// ════════════════════════════════════════════════
+function updateTokenScreen() {
+  const init = S.nama ? S.nama.charAt(0).toUpperCase() : '?';
+  document.getElementById('tok-avatar').textContent = init;
+  document.getElementById('tok-nama').textContent   = S.nama || '—';
+  document.getElementById('tok-nim').textContent    = 'NIM: ' + (S.nim||'—');
+}
+
+function updateReadyScreen() {
+  document.getElementById('rdy-mk').textContent    = S.mataKuliah||'—';
+  document.getElementById('rdy-sub').textContent   = 'Peserta: ' + S.nama + ' • ' + S.prodi;
+  document.getElementById('rdy-durasi').innerHTML  = S.durasi + '<span class="ic-unit">mnt</span>';
+  startCountdown(S.sisaDetik);
+}
+
+// ════════════════════════════════════════════════
+//  MISC HELPERS
+// ════════════════════════════════════════════════
+function doLogout() {
+  if (!confirm('Yakin ingin ganti akun?')) return;
+  clearAllTimers();
+  S = { nim:null,nama:null,prodi:null,token:null,mataKuliah:null,durasi:null,sisaDetik:null,sesiId:null,soal:[],jawaban:{},soalAktif:0,pelanggaranCount:0,forceSubmitted:false };
+  sessionStorage.removeItem('cbt_state');
+  document.getElementById('inp-nim').value='';
+  document.getElementById('inp-pass').value='';
+  showScreen('login');
+}
+
+function resetAplikasi() {
+  clearAllTimers();
+  S.sesiId=null; S.soal=[]; S.jawaban={}; S.soalAktif=0;
+  S.token=null; S.pelanggaranCount=0; S.forceSubmitted=false;
+  saveState();
+  document.getElementById('inp-token').value='';
+  updateTokenScreen(); showScreen('token');
+}
+
+function clearAllTimers() {
+  if (timerInterval)  clearInterval(timerInterval);
+  if (countdownTimer) clearInterval(countdownTimer);
+  if (syncTimerInt)   clearInterval(syncTimerInt);
+}
+
+function saveState() { sessionStorage.setItem('cbt_state', JSON.stringify(S)); }
+
+function showAlert(screen, type, msg) {
+  const el = document.getElementById('alert-'+screen);
+  el.className = 'alert show alert-'+type;
+  document.getElementById('alert-'+screen+'-msg').textContent = msg;
+}
+function hideAlert(screen) { document.getElementById('alert-'+screen).classList.remove('show'); }
+function setLoading(btn, loading, label) { btn.disabled=loading; btn.textContent=loading?'⏳ '+label:label; }
+
+let _toast=null;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  if(_toast) clearTimeout(_toast);
+  _toast=setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// PWA Install
+async function doInstall() {
+  if (window._installPrompt) {
+    window._installPrompt.prompt();
+    const { outcome } = await window._installPrompt.userChoice;
+    if (outcome==='accepted') showToast('✅ Aplikasi berhasil diinstall!');
+    dismissInstall();
+  }
+}
+function dismissInstall() { document.getElementById('install-banner').classList.remove('show'); }
+
+// Enter key
+document.addEventListener('keydown', e => {
+  if (e.key!=='Enter') return;
+  const active=document.querySelector('.screen.active');
+  if (!active) return;
+  if (active.id==='screen-login') doLogin();
+  if (active.id==='screen-token') doVerifyToken();
+});
+</script>
+</body>
+</html>
