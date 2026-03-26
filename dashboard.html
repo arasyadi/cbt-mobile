@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Dosen — Private CBT by Andy Rasyadi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--surface:#1e293b;--surface2:#263548;--surface3:#334155;
+  --primary:#3b82f6;--primary2:#60a5fa;--primary3:#1d4ed8;
+  --accent:#f59e0b;--danger:#ef4444;--success:#22c55e;--purple:#8b5cf6;
+  --text:#f1f5f9;--muted:#94a3b8;--border:#334155;
+  --font:'Outfit',sans-serif;--mono:'Space Mono',monospace;
+  --sidebar:240px;
+}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow:hidden;}
+a{color:inherit;text-decoration:none;}
+
+/* ══════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════ */
+#login-screen{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
+}
+.login-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:24px;
+  padding:48px 40px;width:100%;max-width:420px;
+  box-shadow:0 32px 80px rgba(0,0,0,.5);
+}
+.lc-logo{width:60px;height:60px;background:linear-gradient(135deg,var(--primary),#6366f1);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:24px;}
+.lc-title{font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;}
+.lc-sub{font-size:14px;color:var(--muted);margin-bottom:32px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.field label{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.field input{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;font-size:15px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .2s;}
+.field input:focus{border-color:var(--primary);}
+.btn-login-dosen{width:100%;padding:14px;background:linear-gradient(135deg,var(--primary),#6366f1);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:var(--font);cursor:pointer;transition:opacity .2s;margin-top:8px;}
+.btn-login-dosen:hover{opacity:.9;}
+.btn-login-dosen:disabled{opacity:.6;cursor:not-allowed;}
+.login-err{color:#fca5a5;font-size:13px;margin-top:12px;text-align:center;display:none;}
+.login-err.show{display:block;}
+
+/* ══════════════════════════════════
+   APP SHELL
+══════════════════════════════════ */
+#app-shell{display:none;height:100vh;overflow:hidden;}
+#app-shell.show{display:flex;}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+}
+.sidebar-brand{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+.brand-logo{font-size:20px;font-weight:900;letter-spacing:-.5px;
+  background:linear-gradient(135deg,var(--primary2),#a78bfa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:10px;
+  font-size:14px;font-weight:600;color:var(--muted);
+  cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(59,130,246,.15);color:var(--primary2);border-left:none;}
+.nav-item .nav-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--danger);color:white;font-size:10px;font-weight:800;padding:2px 7px;border-radius:100px;min-width:20px;text-align:center;}
+
+.sidebar-user{padding:16px 20px;border-top:1px solid var(--border);}
+.su-name{font-size:14px;font-weight:700;}
+.su-role{font-size:12px;color:var(--muted);}
+.btn-logout{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,.1);color:#fca5a5;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;margin-top:10px;transition:background .15s;}
+.btn-logout:hover{background:rgba(239,68,68,.2);}
+
+/* ── Main Content ── */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+/* ── Top Bar ── */
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 28px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.topbar-title{font-size:17px;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.refresh-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.refresh-btn:hover{background:var(--surface3);}
+.refresh-btn.spinning .rf-icon{animation:spin 1s linear infinite;}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.last-update{font-size:12px;color:var(--muted);}
+
+/* Auto-refresh toggle */
+.auto-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);color:#86efac;font-size:12px;font-weight:600;cursor:pointer;user-select:none;}
+.auto-badge.off{background:rgba(148,163,184,.1);border-color:var(--border);color:var(--muted);}
+.auto-dot{width:7px;height:7px;border-radius:50%;background:var(--success);animation:blink 1s infinite;}
+.auto-badge.off .auto-dot{background:var(--muted);animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Content Area ── */
+.content{flex:1;overflow-y:auto;padding:24px 28px;}
+
+/* Tab Panels */
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ══════════════════════════════════
+   STAT CARDS (top of each tab)
+══════════════════════════════════ */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:18px 20px;position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;right:0;width:4px;height:100%;
+  border-radius:0 14px 14px 0;
+}
+.stat-card.blue::before{background:var(--primary);}
+.stat-card.green::before{background:var(--success);}
+.stat-card.amber::before{background:var(--accent);}
+.stat-card.red::before{background:var(--danger);}
+.stat-card.purple::before{background:var(--purple);}
+.sc-val{font-size:32px;font-weight:900;font-family:var(--mono);line-height:1;margin-bottom:4px;}
+.sc-lab{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.5px;}
+.sc-icon{position:absolute;top:16px;right:20px;font-size:28px;opacity:.3;}
+
+/* ══════════════════════════════════
+   SECTION HEADER
+══════════════════════════════════ */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-size:15px;font-weight:800;letter-spacing:-.2px;}
+.sec-actions{display:flex;gap:8px;align-items:center;}
+
+/* ══════════════════════════════════
+   TABLES
+══════════════════════════════════ */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:24px;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);white-space:nowrap;border-bottom:1px solid var(--border);}
+.data-table td{padding:11px 14px;border-bottom:1px solid rgba(51,65,85,.5);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(255,255,255,.02);}
+
+/* Status badges */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:.3px;}
+.badge-green  {background:rgba(34,197,94,.12); color:#86efac; border:1px solid rgba(34,197,94,.2);}
+.badge-amber  {background:rgba(245,158,11,.12);color:#fcd34d; border:1px solid rgba(245,158,11,.2);}
+.badge-red    {background:rgba(239,68,68,.12); color:#fca5a5; border:1px solid rgba(239,68,68,.2);}
+.badge-gray   {background:rgba(148,163,184,.1);color:var(--muted);border:1px solid var(--border);}
+.badge-blue   {background:rgba(59,130,246,.12);color:var(--primary2);border:1px solid rgba(59,130,246,.2);}
+.badge-purple {background:rgba(139,92,246,.12);color:#c4b5fd;border:1px solid rgba(139,92,246,.2);}
+
+/* ── Progress bar dalam tabel ── */
+.progress-cell{min-width:120px;}
+.prog-wrap{display:flex;align-items:center;gap:8px;}
+.prog-bar-bg{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.prog-bar-fill{height:100%;background:var(--primary);border-radius:3px;transition:width .4s;}
+.prog-pct{font-size:12px;font-weight:700;min-width:30px;text-align:right;color:var(--muted);}
+
+/* ── Pelanggaran dots ── */
+.viol-dots{display:flex;gap:4px;align-items:center;}
+.viol-dot{width:9px;height:9px;border-radius:50%;background:var(--border);}
+.viol-dot.hit{background:var(--danger);}
+.viol-dot.warn{background:var(--accent);}
+
+/* ── Nilai circle ── */
+.nilai-chip{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;font-weight:900;font-size:14px;font-family:var(--mono);}
+.nilai-chip.A{background:rgba(34,197,94,.15);color:#86efac;border:1.5px solid rgba(34,197,94,.3);}
+.nilai-chip.B{background:rgba(59,130,246,.15);color:var(--primary2);border:1.5px solid rgba(59,130,246,.3);}
+.nilai-chip.C{background:rgba(245,158,11,.15);color:#fcd34d;border:1.5px solid rgba(245,158,11,.3);}
+.nilai-chip.D{background:rgba(239,68,68,.15);color:#fca5a5;border:1.5px solid rgba(239,68,68,.3);}
+
+/* Aksi tombol dalam tabel */
+.btn-tbl{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font);cursor:pointer;border:1px solid;transition:all .15s;}
+.btn-tbl-red{background:rgba(239,68,68,.1);color:#fca5a5;border-color:rgba(239,68,68,.25);}
+.btn-tbl-red:hover{background:rgba(239,68,68,.2);}
+.btn-tbl-blue{background:rgba(59,130,246,.1);color:var(--primary2);border-color:rgba(59,130,246,.25);}
+.btn-tbl-blue:hover{background:rgba(59,130,246,.2);}
+.btn-tbl-amber{background:rgba(245,158,11,.1);color:#fcd34d;border-color:rgba(245,158,11,.25);}
+.btn-tbl-amber:hover{background:rgba(245,158,11,.2);}
+
+/* ══════════════════════════════════
+   CHART (Distribusi Nilai)
+══════════════════════════════════ */
+.chart-section{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.chart-title{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:16px;letter-spacing:.3px;text-transform:uppercase;}
+.bar-chart{display:flex;flex-direction:column;gap:10px;}
+.bar-row{display:flex;align-items:center;gap:10px;}
+.bar-label{font-size:12px;font-weight:700;min-width:80px;color:var(--muted);}
+.bar-bg{flex:1;height:20px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative;}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.bar-fill.A{background:linear-gradient(90deg,var(--success),#16a34a);}
+.bar-fill.B{background:linear-gradient(90deg,var(--primary),#1d4ed8);}
+.bar-fill.C{background:linear-gradient(90deg,var(--accent),#d97706);}
+.bar-fill.D{background:linear-gradient(90deg,var(--danger),#dc2626);}
+.bar-val{font-size:12px;font-weight:700;min-width:28px;text-align:right;}
+
+/* MK Stats */
+.mk-list{display:flex;flex-direction:column;gap:10px;}
+.mk-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border-radius:8px;}
+.mk-name{font-size:13px;font-weight:600;}
+.mk-stats{display:flex;align-items:center;gap:12px;}
+.mk-stat{text-align:center;}
+.mk-stat .val{font-size:16px;font-weight:800;font-family:var(--mono);}
+.mk-stat .lbl{font-size:10px;color:var(--muted);}
+
+/* ══════════════════════════════════
+   PELANGGARAN DETAIL
+══════════════════════════════════ */
+.viol-type-chip{
+  display:inline-flex;padding:2px 8px;border-radius:4px;
+  font-size:10px;font-weight:700;letter-spacing:.5px;font-family:var(--mono);
+}
+.viol-type-TAB_SWITCH{background:rgba(245,158,11,.15);color:#fcd34d;}
+.viol-type-APP_BLUR{background:rgba(245,158,11,.15);color:#fcd34d;}
+.viol-type-COPY_ATTEMPT{background:rgba(139,92,246,.15);color:#c4b5fd;}
+.viol-type-PASTE_ATTEMPT{background:rgba(139,92,246,.15);color:#c4b5fd;}
+.viol-type-RIGHTCLICK{background:rgba(148,163,184,.1);color:var(--muted);}
+.viol-type-SCREENSHOT_KEY{background:rgba(239,68,68,.15);color:#fca5a5;}
+.viol-type-DEVTOOLS{background:rgba(239,68,68,.25);color:#f87171;}
+.viol-type-FULLSCREEN_EXIT{background:rgba(245,158,11,.12);color:#fcd34d;}
+.viol-type-force_cheat{background:rgba(239,68,68,.3);color:#fca5a5;}
+
+/* ══════════════════════════════════
+   TOKEN MANAGEMENT
+══════════════════════════════════ */
+.token-form{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.full{grid-template-columns:1fr;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+.form-group input,.form-group select{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .2s;}
+.form-group input:focus,.form-group select:focus{border-color:var(--primary);}
+.form-actions{display:flex;gap:10px;margin-top:16px;}
+.btn-form{padding:10px 20px;border-radius:8px;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer;border:none;transition:all .15s;}
+.btn-form-primary{background:linear-gradient(135deg,var(--primary),#6366f1);color:white;}
+.btn-form-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+
+/* ══════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════ */
+.empty-state{text-align:center;padding:60px 24px;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5;}
+.empty-text{font-size:15px;font-weight:600;}
+.empty-sub{font-size:13px;margin-top:4px;}
+
+/* ── Export button ── */
+.btn-export{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.2);color:#86efac;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);}
+.btn-export:hover{background:rgba(34,197,94,.2);}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);color:var(--text);padding:12px 18px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,.4);display:none;z-index:9999;border:1px solid var(--border);}
+.toast.show{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .chart-section{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="lc-logo">🎓</div>
+    <div class="lc-title">Dashboard Dosen</div>
+    <div class="lc-sub">CBT Universitas — Panel Pengawas Ujian</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="inp-user" placeholder="Masukkan username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="inp-dpass" placeholder="Password dosen" autocomplete="current-password">
+    </div>
+    <button class="btn-login-dosen" id="btn-dlogin" onclick="doLoginDosen()">Masuk ke Dashboard</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ APP SHELL ═══════════════ -->
+<div id="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo">CBT Dashboard</div>
+      <div class="brand-sub">Panel Pengawas Ujian</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="switchTab('monitor')">
+        <span class="nav-icon">📡</span> Monitor Aktif
+        <span class="nav-badge" id="badge-aktif" style="display:none">0</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('nilai')">
+        <span class="nav-icon">📊</span> Rekap Nilai
+      </button>
+      <button class="nav-item" onclick="switchTab('pelanggaran')">
+        <span class="nav-icon">🚨</span> Pelanggaran
+        <span class="nav-badge" id="badge-pelang" style="display:none">!</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('token')">
+        <span class="nav-icon">🔑</span> Manajemen Token
+      </button>
+      <button class="nav-item" onclick="switchTab('statistik')">
+        <span class="nav-icon">📈</span> Statistik
+      </button>
+    </nav>
+    <div class="sidebar-user">
+      <div class="su-name" id="su-name">—</div>
+      <div class="su-role" id="su-role">—</div>
+      <button class="btn-logout" onclick="doLogout()">🚪 Keluar</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Monitor Aktif</div>
+      <div class="topbar-right">
+        <span class="last-update" id="last-update"></span>
+        <div class="auto-badge" id="auto-badge" onclick="toggleAutoRefresh()">
+          <div class="auto-dot"></div>
+          Auto-refresh
+        </div>
+        <button class="refresh-btn" onclick="refreshCurrent()">
+          <span class="rf-icon">↻</span> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ── TAB: MONITOR AKTIF ── -->
+      <div id="tab-monitor" class="tab-panel active">
+
+        <div class="stat-row" id="monitor-stats">
+          <div class="stat-card blue"><div class="sc-val" id="ms-aktif">0</div><div class="sc-lab">Sedang Ujian</div><div class="sc-icon">📝</div></div>
+          <div class="stat-card green"><div class="sc-val" id="ms-selesai">0</div><div class="sc-lab">Selesai</div><div class="sc-icon">✅</div></div>
+          <div class="stat-card amber"><div class="sc-val" id="ms-belum">0</div><div class="sc-lab">Belum Mulai</div><div class="sc-icon">⏳</div></div>
+          <div class="stat-card red"><div class="sc-val" id="ms-pelangg">0</div><div class="sc-lab">Total Pelanggaran</div><div class="sc-icon">⚠️</div></div>
+        </div>
+
+        <div class="sec-header">
+          <div class="sec-title">Peserta Ujian — Real-time</div>
+          <div class="sec-actions">
+            <select id="filter-token-monitor" onchange="loadMonitor()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;">
+              <option value="">Semua Token</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Peserta</th>
+                <th>Mata Kuliah</th>
+                <th>Mulai</th>
+                <th>Progress Jawaban</th>
+                <th>Pelanggaran</th>
+                <th>Sisa Waktu</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-monitor">
+              <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📡</div><div class="empty-text">Memuat data...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TAB: REKAP NILAI ── -->
+      <div id="tab-nilai" class="tab-panel">
+
+        <div class="sec-header">
+          <div class="sec-title">Rekap Nilai Ujian</div>
+          <div class="sec-actions">
+            <select id="filter-token-nilai" onchange="loadNilai()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;">
+              <option value="">Semua Ujian</option>
+            </select>
+            <button class="btn-export" onclick="exportNilai()">⬇ Export CSV</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>NIM</th>
+                <th>Nama</th>
+                <th>Prodi</th>
+                <th>Mata Kuliah</th>
+                <th>Nilai</th>
+                <th>Benar</th>
+                <th>Salah</th>
+                <th>Kosong</th>
+                <th>Durasi</th>
+                <th>Pelanggaran</th>
+                <th>Mode</th>
+                <th>Predikat</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-nilai">
+              <tr><td colspan="13"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Memuat data...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TAB: PELANGGARAN ── -->
+      <div id="tab-pelanggaran" class="tab-panel">
+
+        <div class="sec-header">
+          <div class="sec-title">Rekap Pelanggaran</div>
+          <div class="sec-actions">
+            <button class="btn-export" onclick="exportPelanggaran()">⬇ Export CSV</button>
+          </div>
+        </div>
+
+        <!-- Agregasi per mahasiswa -->
+        <div class="table-wrap" style="margin-bottom:16px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>NIM</th>
+                <th>Nama</th>
+                <th>Total Pelanggaran</th>
+                <th>Tab Switch</th>
+                <th>Copy/Paste</th>
+                <th>DevTools</th>
+                <th>Screenshot</th>
+                <th>Lainnya</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-agregasi">
+              <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🚨</div><div class="empty-text">Memuat data...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sec-header"><div class="sec-title">Log Pelanggaran Detail</div></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Waktu</th><th>NIM</th><th>Nama</th><th>Jenis</th><th>Detail</th><th>No. Soal</th></tr>
+            </thead>
+            <tbody id="tbody-detail-pelang">
+              <tr><td colspan="6"><div class="empty-state"><div class="empty-text">Memuat data...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TAB: MANAJEMEN TOKEN ── -->
+      <div id="tab-token" class="tab-panel">
+
+        <div class="sec-header">
+          <div class="sec-title">Buat Token Baru</div>
+        </div>
+
+        <div class="token-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Kode Token</label>
+              <input type="text" id="tf-token" placeholder="Contoh: UAS2024" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+            </div>
+            <div class="form-group">
+              <label>Mata Kuliah</label>
+              <input type="text" id="tf-mk" placeholder="Contoh: Pemrograman Web">
+            </div>
+            <div class="form-group">
+              <label>Durasi (menit)</label>
+              <input type="number" id="tf-durasi" placeholder="90" min="10" max="300">
+            </div>
+            <div class="form-group">
+              <label>Waktu Mulai</label>
+              <input type="datetime-local" id="tf-mulai">
+            </div>
+            <div class="form-group">
+              <label>Waktu Berakhir</label>
+              <input type="datetime-local" id="tf-akhir">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-form btn-form-primary" onclick="doBuatToken()">+ Buat Token</button>
+            <button class="btn-form btn-form-secondary" onclick="resetTokenForm()">Reset</button>
+          </div>
+        </div>
+
+        <div class="sec-header"><div class="sec-title">Daftar Token</div></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Token</th><th>Mata Kuliah</th><th>Durasi</th><th>Mulai</th><th>Berakhir</th><th>Status</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="tbody-token">
+              <tr><td colspan="7"><div class="empty-state"><div class="empty-text">Memuat data...</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TAB: STATISTIK ── -->
+      <div id="tab-statistik" class="tab-panel">
+
+        <div class="stat-row">
+          <div class="stat-card blue"><div class="sc-val" id="st-mhs">0</div><div class="sc-lab">Total Mahasiswa</div><div class="sc-icon">👥</div></div>
+          <div class="stat-card green"><div class="sc-val" id="st-selesai">0</div><div class="sc-lab">Sudah Submit</div><div class="sc-icon">✅</div></div>
+          <div class="stat-card amber"><div class="sc-val" id="st-rata">0</div><div class="sc-lab">Rata-rata Nilai</div><div class="sc-icon">📈</div></div>
+          <div class="stat-card red"><div class="sc-val" id="st-pelang">0</div><div class="sc-lab">Total Pelanggaran</div><div class="sc-icon">⚠️</div></div>
+          <div class="stat-card purple"><div class="sc-val" id="st-token">0</div><div class="sc-lab">Token Aktif</div><div class="sc-icon">🔑</div></div>
+        </div>
+
+        <div class="chart-section">
+          <div class="chart-card">
+            <div class="chart-title">Distribusi Nilai</div>
+            <div class="bar-chart" id="chart-dist">
+              <div class="empty-state" style="padding:20px"><div class="empty-text">Memuat...</div></div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Statistik per Mata Kuliah</div>
+            <div class="mk-list" id="chart-mk">
+              <div class="empty-state" style="padding:20px"><div class="empty-text">Memuat...</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- .content -->
+  </main>
+</div><!-- #app-shell -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════
+const API_URL = "https://script.google.com/macros/s/AKfycbzV3UDvkcGSr7imNO6fZa0cHFq1MSxBzCS48Kv4CfVwvAdw5wBQapVUq8m2XePECC6y/exec";  // ← Ganti ini!
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+let DS = { username:"", password:"", nama:"", role:"" };
+let currentTab    = "monitor";
+let autoRefresh   = true;
+let autoInterval  = null;
+let rekapNilaiData = [];
+let rekapPelangData = [];
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  // Set default waktu form token
+  const now  = new Date();
+  const akhir = new Date(now.getTime() + 2*60*60*1000);
+  document.getElementById('tf-mulai').value = toLocalISO(now);
+  document.getElementById('tf-akhir').value = toLocalISO(akhir);
+
+  document.getElementById('inp-user').addEventListener('keydown', e=>{ if(e.key==='Enter') doLoginDosen(); });
+  document.getElementById('inp-dpass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLoginDosen(); });
+});
+
+// ════════════════════════════════════════════════
+//  API
+// ════════════════════════════════════════════════
+async function apiCall(payload) {
+  const res = await fetch(API_URL, {
+    method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ════════════════════════════════════════════════
+//  LOGIN DOSEN
+// ════════════════════════════════════════════════
+async function doLoginDosen() {
+  const username = document.getElementById('inp-user').value.trim();
+  const password = document.getElementById('inp-dpass').value.trim();
+  if (!username || !password) { showLoginErr('Username dan password wajib diisi.'); return; }
+
+  const btn = document.getElementById('btn-dlogin');
+  btn.disabled = true; btn.textContent = 'Memverifikasi...';
+  document.getElementById('login-err').classList.remove('show');
+
+  try {
+    const res = await apiCall({ action:'loginDosen', username, password });
+    if (res.ok) {
+      DS.username = res.username; DS.password = password;
+      DS.nama     = res.nama;    DS.role     = res.role;
+
+      document.getElementById('su-name').textContent = res.nama;
+      document.getElementById('su-role').textContent = res.role === 'admin' ? '🛡 Administrator' : '🎓 Dosen';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-shell').classList.add('show');
+
+      // Load all token options for filter dropdowns
+      await loadTokenOptions();
+
+      // Init dashboard
+      await loadDashboardStats();
+      await loadMonitor();
+      startAutoRefresh();
+    } else {
+      showLoginErr(res.message || 'Login gagal.');
+    }
+  } catch(e) {
+    showLoginErr('Koneksi gagal. Periksa URL API.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Masuk ke Dashboard';
+  }
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = '❌ ' + msg; el.classList.add('show');
+}
+
+function doLogout() {
+  if (!confirm('Keluar dari dashboard?')) return;
+  stopAutoRefresh();
+  DS = { username:"", password:"", nama:"", role:"" };
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-shell').classList.remove('show');
+}
+
+// ════════════════════════════════════════════════
+//  TAB NAVIGATION
+// ════════════════════════════════════════════════
+async function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-item')[['monitor','nilai','pelanggaran','token','statistik'].indexOf(tab)]?.classList.add('active');
+
+  const titles = {
+    monitor:     '📡 Monitor Aktif',
+    nilai:       '📊 Rekap Nilai',
+    pelanggaran: '🚨 Pelanggaran',
+    token:       '🔑 Manajemen Token',
+    statistik:   '📈 Statistik'
+  };
+  document.getElementById('topbar-title').textContent = titles[tab] || tab;
+
+  await refreshCurrent();
+}
+
+async function refreshCurrent() {
+  const btn = document.querySelector('.refresh-btn');
+  btn.classList.add('spinning');
+  updateLastUpdate();
+  try {
+    if (currentTab === 'monitor')     await loadMonitor();
+    if (currentTab === 'nilai')       await loadNilai();
+    if (currentTab === 'pelanggaran') await loadPelanggaran();
+    if (currentTab === 'token')       await loadToken();
+    if (currentTab === 'statistik') { await loadDashboardStats(); }
+  } catch(e) { showToast('⚠ Gagal memuat data.'); }
+  finally { btn.classList.remove('spinning'); }
+}
+
+// ════════════════════════════════════════════════
+//  AUTO-REFRESH
+// ════════════════════════════════════════════════
+function startAutoRefresh() {
+  stopAutoRefresh();
+  if (!autoRefresh) return;
+  autoInterval = setInterval(async () => {
+    if (currentTab === 'monitor') await loadMonitor();
+  }, 15000); // setiap 15 detik
+}
+function stopAutoRefresh() { if (autoInterval) clearInterval(autoInterval); }
+function toggleAutoRefresh() {
+  autoRefresh = !autoRefresh;
+  const badge = document.getElementById('auto-badge');
+  badge.className = 'auto-badge' + (autoRefresh ? '' : ' off');
+  if (autoRefresh) startAutoRefresh();
+  else stopAutoRefresh();
+  showToast(autoRefresh ? '🔄 Auto-refresh aktif (15 detik)' : '⏸ Auto-refresh dimatikan');
+}
+
+// ════════════════════════════════════════════════
+//  LOAD TOKEN OPTIONS (untuk filter dropdown)
+// ════════════════════════════════════════════════
+async function loadTokenOptions() {
+  try {
+    const res = await apiCall({ action:'getTokenList', username:DS.username, password:DS.password });
+    if (!res.ok) return;
+    const selects = ['filter-token-monitor','filter-token-nilai'];
+    selects.forEach(id => {
+      const sel = document.getElementById(id);
+      const curVal = sel.value;
+      sel.innerHTML = `<option value="">Semua Token</option>`;
+      res.list.forEach(t => {
+        sel.innerHTML += `<option value="${t.token}">${t.token} — ${t.mataKuliah}</option>`;
+      });
+      sel.value = curVal;
+    });
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════
+//  MONITOR AKTIF
+// ════════════════════════════════════════════════
+async function loadMonitor() {
+  const tokenFilter = document.getElementById('filter-token-monitor').value;
+  try {
+    const res = await apiCall({ action:'getMonitorAktif', username:DS.username, password:DS.password, tokenFilter });
+    if (!res.ok) { showToast('❌ ' + (res.message||'Gagal')); return; }
+
+    // Update stat badge
+    const badge = document.getElementById('badge-aktif');
+    badge.textContent = res.jumlah;
+    badge.style.display = res.jumlah > 0 ? 'inline-flex' : 'none';
+
+    const tbody = document.getElementById('tbody-monitor');
+    if (res.sesiAktif.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Tidak ada peserta ujian aktif</div><div class="empty-sub">Mahasiswa akan muncul di sini saat ujian dimulai</div></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = res.sesiAktif.map(s => {
+      const statusClass = {aman:'badge-green',perhatian:'badge-amber',berbahaya:'badge-red',dikunci:'badge-red'}[s.pelanggranStatus]||'badge-gray';
+      const statusText  = {aman:'Aman',perhatian:'Perhatian',berbahaya:'Berbahaya',dikunci:'Dikunci'}[s.pelanggranStatus]||s.pelanggranStatus;
+      const sisaStr     = s.sisaDetik!==null ? fmtWaktu(s.sisaDetik) : '—';
+      const sisaColor   = s.sisaDetik < 300 ? 'color:#ef4444' : s.sisaDetik < 600 ? 'color:#f59e0b' : '';
+      const violDots    = Array.from({length:5},(_,i)=>`<div class="viol-dot${i<s.pelanggaran?(s.pelanggaran>=3?' hit':' warn'):''}"></div>`).join('');
+      return `<tr>
+        <td><div style="font-weight:700">${esc(s.nama)}</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${esc(s.nim)}</div><div style="font-size:11px;color:var(--muted)">${esc(s.prodi)}</div></td>
+        <td>${esc(s.mataKuliah)}<div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${esc(s.token)}</div></td>
+        <td>${s.waktuMulai}<div style="font-size:11px;color:var(--muted)">${s.durasiBerjalan} mnt berlalu</div></td>
+        <td class="progress-cell"><div class="prog-wrap"><div class="prog-bar-bg"><div class="prog-bar-fill" style="width:${s.persen}%"></div></div><div class="prog-pct">${s.persen}%</div></div><div style="font-size:11px;color:var(--muted);margin-top:3px">${s.terisi}/${s.jumlahSoal} soal</div></td>
+        <td><div class="viol-dots">${violDots}</div><div style="margin-top:4px"><span class="badge ${statusClass}">${statusText}</span></div></td>
+        <td style="${sisaColor};font-family:var(--mono);font-weight:700">${sisaStr}</td>
+        <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-tbl btn-tbl-red" onclick="doForceSubmit('${esc(s.nim)}','${esc(s.sesiId)}','${esc(s.nama)}')" title="Force submit">⏏ Submit</button>
+          <button class="btn-tbl btn-tbl-blue" onclick="doResetSesi('${esc(s.sesiId)}','${esc(s.nama)}')" title="Reset sesi">↺ Reset</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+
+    // Update dashboard stats bersamaan
+    await loadDashboardStats(true);
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+// ════════════════════════════════════════════════
+//  REKAP NILAI
+// ════════════════════════════════════════════════
+async function loadNilai() {
+  const tokenFilter = document.getElementById('filter-token-nilai').value;
+  try {
+    const res = await apiCall({ action:'getRekapNilai', username:DS.username, password:DS.password, tokenFilter });
+    if (!res.ok) { showToast('❌ ' + (res.message||'Gagal')); return; }
+
+    rekapNilaiData = res.rekap;
+    const tbody = document.getElementById('tbody-nilai');
+
+    if (res.rekap.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Belum ada ujian yang selesai</div></div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = res.rekap.map((r, idx) => {
+      const grade = r.nilai>=85?'A':r.nilai>=75?'B':r.nilai>=60?'C':'D';
+      const modeLabel = {manual:'✋ Manual',timeout:'⏰ Timeout',force_cheat:'🔒 Force',force_dosen:'🎓 Dosen'}[r.modeFinal]||r.modeFinal;
+      const hasViol   = r.pelanggaran > 0;
+      return `<tr>
+        <td style="color:var(--muted);font-size:12px">${idx+1}</td>
+        <td style="font-family:var(--mono);font-size:12px">${esc(r.nim)}</td>
+        <td><div style="font-weight:700">${esc(r.nama)}</div></td>
+        <td style="font-size:12px;color:var(--muted)">${esc(r.prodi)}</td>
+        <td>${esc(r.mataKuliah)}</td>
+        <td><div class="nilai-chip ${grade}">${r.nilai}</div></td>
+        <td style="color:var(--success);font-weight:700">${r.benar}</td>
+        <td style="color:var(--danger)">${r.salah}</td>
+        <td style="color:var(--accent)">${r.kosong}</td>
+        <td style="font-size:12px;color:var(--muted)">${r.durasi}</td>
+        <td>${hasViol?`<span style="color:var(--danger);font-weight:700">${r.pelanggaran}×</span>`:'<span style="color:var(--muted)">0</span>'}</td>
+        <td><span class="badge ${modeLabel.includes('Force')||modeLabel.includes('Timeout')?'badge-red':'badge-gray'}">${modeLabel}</span></td>
+        <td><span class="badge ${grade==='A'?'badge-green':grade==='B'?'badge-blue':grade==='C'?'badge-amber':'badge-red'}">${r.predikat}</span></td>
+      </tr>`;
+    }).join('');
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+// ════════════════════════════════════════════════
+//  PELANGGARAN
+// ════════════════════════════════════════════════
+async function loadPelanggaran() {
+  try {
+    const res = await apiCall({ action:'getRekapPelanggaran', username:DS.username, password:DS.password });
+    if (!res.ok) { showToast('❌ ' + (res.message||'Gagal')); return; }
+
+    rekapPelangData = res.detail;
+
+    // Update badge
+    const badge = document.getElementById('badge-pelang');
+    const berat  = res.detail.filter(d=>d.berat).length;
+    badge.style.display = berat > 0 ? 'inline-flex' : 'none';
+    badge.textContent = berat > 0 ? berat : '!';
+
+    // Agregasi per mahasiswa
+    const tbodyAg = document.getElementById('tbody-agregasi');
+    if (res.agregasi.length === 0) {
+      tbodyAg.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Tidak ada pelanggaran</div></div></td></tr>`;
+    } else {
+      tbodyAg.innerHTML = res.agregasi.map(a => {
+        const j = a.jenis||{};
+        const tabSwitch = (j['TAB_SWITCH']||0)+(j['APP_BLUR']||0);
+        const copyPaste = (j['COPY_ATTEMPT']||0)+(j['PASTE_ATTEMPT']||0);
+        const devtools  = j['DEVTOOLS']||0;
+        const screenshot= j['SCREENSHOT_KEY']||0;
+        const lainnya   = a.total - tabSwitch - copyPaste - devtools - screenshot;
+        const level     = a.total>=5?'badge-red':a.total>=3?'badge-amber':'badge-gray';
+        const levelText = a.total>=5?'Dikunci':a.total>=3?'Berbahaya':'Perhatian';
+        return `<tr>
+          <td style="font-family:var(--mono);font-size:12px">${esc(a.nim)}</td>
+          <td><div style="font-weight:700">${esc(a.nama)}</div></td>
+          <td style="font-weight:900;font-size:18px;font-family:var(--mono);color:${a.total>=5?'var(--danger)':a.total>=3?'var(--accent)':'var(--muted)'}">${a.total}</td>
+          <td>${tabSwitch||'—'}</td>
+          <td>${copyPaste||'—'}</td>
+          <td>${devtools>0?`<span style="color:var(--danger);font-weight:700">${devtools}</span>`:'—'}</td>
+          <td>${screenshot||'—'}</td>
+          <td>${lainnya>0?lainnya:'—'}</td>
+          <td><span class="badge ${level}">${levelText}</span></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Detail log
+    const tbodyDet = document.getElementById('tbody-detail-pelang');
+    if (res.detail.length === 0) {
+      tbodyDet.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-text">Tidak ada log pelanggaran</div></div></td></tr>`;
+    } else {
+      // Tampilkan 100 terbaru, terbaru di atas
+      const recent = [...res.detail].reverse().slice(0,100);
+      tbodyDet.innerHTML = recent.map(d => `<tr ${d.berat?'style="background:rgba(239,68,68,.05)"':''}>
+        <td style="font-size:12px;color:var(--muted)">${esc(d.waktu)}</td>
+        <td style="font-family:var(--mono);font-size:12px">${esc(d.nim)}</td>
+        <td>${esc(d.nama)}</td>
+        <td><span class="viol-type-chip viol-type-${esc(d.jenis)}">${esc(d.jenis)}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${esc(d.detail)||'—'}</td>
+        <td style="font-family:var(--mono);font-size:12px;text-align:center">${d.nomorSoal||'—'}</td>
+      </tr>`).join('');
+    }
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+// ════════════════════════════════════════════════
+//  TOKEN MANAGEMENT
+// ════════════════════════════════════════════════
+async function loadToken() {
+  try {
+    const res = await apiCall({ action:'getTokenList', username:DS.username, password:DS.password });
+    if (!res.ok) { showToast('❌ ' + (res.message||'Gagal')); return; }
+    const tbody = document.getElementById('tbody-token');
+    if (res.list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">Belum ada token</div></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = res.list.map(t => {
+      const isAktif   = t.status==='aktif' && !t.expired;
+      const statusCls = isAktif?'badge-green':t.expired?'badge-gray':'badge-red';
+      const statusTxt = isAktif?'Aktif':t.expired?'Expired':'Nonaktif';
+      return `<tr>
+        <td style="font-family:var(--mono);font-weight:700;letter-spacing:1px">${esc(t.token)}</td>
+        <td>${esc(t.mataKuliah)}</td>
+        <td>${t.durasi} mnt</td>
+        <td style="font-size:12px;color:var(--muted)">${esc(t.mulai)}</td>
+        <td style="font-size:12px;color:${t.expired?'var(--danger)':'var(--muted)'}">${esc(t.akhir)}</td>
+        <td><span class="badge ${statusCls}">${statusTxt}</span></td>
+        <td>${isAktif?`<button class="btn-tbl btn-tbl-red" onclick="doNonaktifToken('${esc(t.token)}')">Nonaktifkan</button>`:'<span style="color:var(--muted);font-size:12px">—</span>'}</td>
+      </tr>`;
+    }).join('');
+    await loadTokenOptions();
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+async function doBuatToken() {
+  const token    = document.getElementById('tf-token').value.trim().toUpperCase();
+  const mataKuliah = document.getElementById('tf-mk').value.trim();
+  const durasi   = document.getElementById('tf-durasi').value;
+  const mulai    = document.getElementById('tf-mulai').value;
+  const akhir    = document.getElementById('tf-akhir').value;
+
+  if (!token||!mataKuliah||!durasi||!mulai||!akhir) { showToast('⚠ Semua field wajib diisi.'); return; }
+  if (new Date(mulai) >= new Date(akhir)) { showToast('⚠ Waktu mulai harus sebelum berakhir.'); return; }
+
+  try {
+    const res = await apiCall({ action:'buatToken', username:DS.username, password:DS.password, token, mataKuliah, durasi, mulai, akhir });
+    if (res.ok) { showToast('✅ Token berhasil dibuat!'); resetTokenForm(); await loadToken(); }
+    else showToast('❌ ' + res.message);
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+async function doNonaktifToken(token) {
+  if (!confirm(`Nonaktifkan token ${token}?`)) return;
+  try {
+    const res = await apiCall({ action:'nonaktifkanToken', username:DS.username, password:DS.password, token });
+    if (res.ok) { showToast('✅ Token dinonaktifkan.'); await loadToken(); }
+    else showToast('❌ ' + res.message);
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+function resetTokenForm() {
+  document.getElementById('tf-token').value='';
+  document.getElementById('tf-mk').value='';
+  document.getElementById('tf-durasi').value='';
+  const now=new Date(), akhir=new Date(now.getTime()+2*60*60*1000);
+  document.getElementById('tf-mulai').value=toLocalISO(now);
+  document.getElementById('tf-akhir').value=toLocalISO(akhir);
+}
+
+// ════════════════════════════════════════════════
+//  STATISTIK
+// ════════════════════════════════════════════════
+async function loadDashboardStats(silent=false) {
+  try {
+    const res = await apiCall({ action:'getDashboardStats', username:DS.username, password:DS.password });
+    if (!res.ok) return;
+
+    // Monitor stats
+    document.getElementById('ms-aktif').textContent   = res.aktif;
+    document.getElementById('ms-selesai').textContent = res.selesai;
+    document.getElementById('ms-belum').textContent   = res.belumMulai < 0 ? 0 : res.belumMulai;
+    document.getElementById('ms-pelangg').textContent = res.totalPelanggaran;
+
+    // Statistik tab
+    document.getElementById('st-mhs').textContent    = res.totalMahasiswa;
+    document.getElementById('st-selesai').textContent = res.selesai;
+    document.getElementById('st-rata').textContent   = res.rataRata;
+    document.getElementById('st-pelang').textContent = res.totalPelanggaran;
+    document.getElementById('st-token').textContent  = res.tokenAktif;
+
+    // Chart distribusi nilai
+    if (currentTab==='statistik' || !silent) {
+      const dist = res.nilaiDist || {A:0,B:0,C:0,D:0};
+      const total = dist.A+dist.B+dist.C+dist.D || 1;
+      const chartEl = document.getElementById('chart-dist');
+      const bars = [
+        {label:'A (≥85)', key:'A', val:dist.A, color:'A'},
+        {label:'B (≥75)', key:'B', val:dist.B, color:'B'},
+        {label:'C (≥60)', key:'C', val:dist.C, color:'C'},
+        {label:'D (<60)', key:'D', val:dist.D, color:'D'},
+      ];
+      chartEl.innerHTML = bars.map(b=>`
+        <div class="bar-row">
+          <div class="bar-label">${b.label}</div>
+          <div class="bar-bg"><div class="bar-fill ${b.color}" style="width:${Math.round((b.val/total)*100)}%"></div></div>
+          <div class="bar-val">${b.val}</div>
+        </div>
+      `).join('');
+
+      // MK list
+      const mkEl = document.getElementById('chart-mk');
+      if (res.mkList && res.mkList.length > 0) {
+        mkEl.innerHTML = res.mkList.map(m=>`
+          <div class="mk-item">
+            <div class="mk-name">${esc(m.mk)}</div>
+            <div class="mk-stats">
+              <div class="mk-stat"><div class="val">${m.total}</div><div class="lbl">Peserta</div></div>
+              <div class="mk-stat"><div class="val" style="color:${m.rataRata>=75?'var(--success)':m.rataRata>=60?'var(--accent)':'var(--danger)'}">${m.rataRata}</div><div class="lbl">Rata-rata</div></div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        mkEl.innerHTML = `<div class="empty-state" style="padding:20px"><div class="empty-text">Belum ada data</div></div>`;
+      }
+    }
+  } catch(e) { if(!silent) showToast('❌ Gagal memuat statistik.'); }
+}
+
+// ════════════════════════════════════════════════
+//  AKSI PADA SESI MAHASISWA
+// ════════════════════════════════════════════════
+async function doForceSubmit(nim, sesiId, nama) {
+  if (!confirm(`Submit paksa ujian milik ${nama} (${nim})?\nJawaban yang sudah ada akan dikumpulkan.`)) return;
+  try {
+    const res = await apiCall({ action:'forceSubmitMahasiswa', username:DS.username, password:DS.password, nim, sesiId });
+    if (res.ok) { showToast('✅ Ujian ' + nama + ' berhasil dikumpulkan. Nilai: ' + res.nilai); await loadMonitor(); }
+    else showToast('❌ ' + res.message);
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+async function doResetSesi(sesiId, nama) {
+  if (!confirm(`Reset sesi ${nama}?\nMahasiswa bisa mulai ujian ulang dengan token yang sama.\nJawaban sebelumnya tidak dihapus.`)) return;
+  try {
+    const res = await apiCall({ action:'resetSesiMahasiswa', username:DS.username, password:DS.password, sesiId });
+    if (res.ok) { showToast('✅ Sesi ' + nama + ' berhasil direset.'); await loadMonitor(); }
+    else showToast('❌ ' + res.message);
+  } catch(e) { showToast('❌ Koneksi gagal.'); }
+}
+
+// ════════════════════════════════════════════════
+//  EXPORT CSV
+// ════════════════════════════════════════════════
+function exportNilai() {
+  if (!rekapNilaiData.length) { showToast('⚠ Tidak ada data untuk diekspor.'); return; }
+  const header = ['NIM','Nama','Prodi','Mata Kuliah','Nilai','Benar','Salah','Kosong','Durasi','Pelanggaran','Mode','Predikat','Waktu Mulai','Waktu Selesai'];
+  const rows   = rekapNilaiData.map(r=>[r.nim,r.nama,r.prodi,r.mataKuliah,r.nilai,r.benar,r.salah,r.kosong,r.durasi,r.pelanggaran,r.modeFinal,r.predikat,r.waktuMulai,r.waktuSelesai]);
+  downloadCSV('rekap_nilai.csv', [header,...rows]);
+  showToast('✅ Ekspor rekap nilai berhasil!');
+}
+
+function exportPelanggaran() {
+  if (!rekapPelangData.length) { showToast('⚠ Tidak ada data untuk diekspor.'); return; }
+  const header = ['Waktu','NIM','Nama','Jenis','Detail','Nomor Soal'];
+  const rows   = rekapPelangData.map(d=>[d.waktu,d.nim,d.nama,d.jenis,d.detail,d.nomorSoal]);
+  downloadCSV('rekap_pelanggaran.csv', [header,...rows]);
+  showToast('✅ Ekspor pelanggaran berhasil!');
+}
+
+function downloadCSV(filename, rows) {
+  const csv    = rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob   = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url    = URL.createObjectURL(blob);
+  const link   = document.createElement('a');
+  link.href=url; link.download=filename;
+  document.body.appendChild(link); link.click();
+  document.body.removeChild(link); URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════
+function fmtWaktu(detik) {
+  if (detik <= 0) return '00:00';
+  const j=Math.floor(detik/3600), m=Math.floor((detik%3600)/60), s=detik%60;
+  return (j>0?j+':':'') + pad(m)+':'+pad(s);
+}
+function pad(n){return String(n).padStart(2,'0');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toLocalISO(d){const off=d.getTimezoneOffset();const local=new Date(d.getTime()-off*60*1000);return local.toISOString().slice(0,16);}
+
+let _toast=null;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  if(_toast)clearTimeout(_toast);
+  _toast=setTimeout(()=>t.classList.remove('show'),3500);
+}
+function updateLastUpdate() {
+  const now=new Date();
+  document.getElementById('last-update').textContent='Update: '+now.toLocaleTimeString('id-ID');
+}
+</script>
+</body>
+</html>
