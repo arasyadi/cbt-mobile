@@ -123,6 +123,30 @@ label { font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:up
 .divider { display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:4px 0; }
 .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
+/* Style untuk link dashboard dosen di halaman login */
+.link-dosen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  padding: 8px 18px;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.link-dosen:hover {
+  border-color: var(--primary);
+  color: var(--primary2);
+  background: rgba(59, 130, 246, 0.06);
+}
+
 #screen-token { overflow-y:auto; }
 .token-header { padding:32px 24px 24px; background:var(--surface); flex-shrink:0; }
 .user-card { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
@@ -473,6 +497,8 @@ label { font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:up
     <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Masuk</button>
     <div class="divider">info</div>
     <div style="text-align:center;font-size:13px;color:var(--muted)">☕ Developed by: Andy Rasyadi, S.Pi., M.Si.</div>
+    
+    <button class="link-dosen" onclick="bukaDashboardDosen()">🎓 Akses Dashboard Dosen</button>
   </div>
 </div>
 
@@ -645,7 +671,7 @@ label { font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:up
 </div>
 
 <!-- Blur Overlay (saat app tidak fokus) -->
-<div id="blur-overlay">
+<div id="blur-overlay" onclick="this.classList.remove('show')">
   <div class="bo-icon">🔍</div>
   <div class="bo-title">Fokus ke Ujian!</div>
   <div class="bo-sub">Kembali ke aplikasi untuk melanjutkan ujian.<br>Ketidakhadiran telah dicatat.</div>
@@ -1014,22 +1040,29 @@ async function doSubmitFinal(mode) {
   closeModal();
   clearAllTimers();
 
-  for (const id in saveQueue) clearTimeout(saveQueue[id]);
-  saveQueue = {};
-
+  // Biarkan auto-save terakhir tetap berjalan (jangan di-clearTimeout)
+  
   exitFullscreen();
   showScreen('submit');
 
-  // Flush jawaban ke server
-  for (const [soalId, jawaban] of Object.entries(S.jawaban)) {
-    try { await apiCall({ action:'saveJawaban', nim:S.nim, sesiId:S.sesiId, soalId, jawaban }); } catch(e) {}
-  }
+  // Berikan jeda 1.5 detik untuk memastikan auto-save terakhir masuk ke server
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
   try {
     const res = await apiCall({ action:'submitUjian', nim:S.nim, sesiId:S.sesiId, token:S.token, mode });
-    if (res.ok) { tampilkanHasil(res); showScreen('hasil'); }
-    else { showToast('❌ Submit gagal: ' + res.message); S.forceSubmitted=false; showScreen('soal'); }
-  } catch(e) { showToast('❌ Koneksi gagal saat submit.'); S.forceSubmitted=false; showScreen('soal'); }
+    if (res.ok) { 
+      tampilkanHasil(res); 
+      showScreen('hasil'); 
+    } else { 
+      showToast('❌ Submit gagal: ' + res.message); 
+      S.forceSubmitted=false; 
+      showScreen('soal'); 
+    }
+  } catch(e) { 
+    showToast('❌ Koneksi gagal saat submit.'); 
+    S.forceSubmitted=false; 
+    showScreen('soal'); 
+  }
 }
 
 function tampilkanHasil(res) {
@@ -1113,14 +1146,16 @@ function isUjianAktif() {
 // ─ Visibilitychange ─
 let blurStartTime = null;
 function onVisibilityChange() {
-  if (!isUjianAktif()) return;
   if (document.hidden) {
+    if (!isUjianAktif()) return; // Hanya catat pelanggaran jika ujian masih aktif
     blurStartTime = Date.now();
     document.getElementById('blur-overlay').classList.add('show');
     recordViolation('TAB_SWITCH', 'Tab/app switch', false);
   } else {
+    // Selalu hapus blur saat layar kembali terlihat (mencegah nyangkut)
     document.getElementById('blur-overlay').classList.remove('show');
-    if (blurStartTime) {
+    
+    if (blurStartTime && isUjianAktif()) {
       const detik = Math.round((Date.now()-blurStartTime)/1000);
       blurStartTime = null;
       if (detik > 2) showToast('⚠ Absen ' + detik + ' detik. Dicatat!');
@@ -1132,6 +1167,13 @@ function onVisibilityChange() {
 let blurDebounce = null;
 function onWindowBlur() {
   if (!isUjianAktif()) return;
+  
+  // Deteksi perangkat mobile/layar sentuh
+  const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  
+  // Abaikan event blur di HP. Di HP kita cukup andalkan visibilitychange (Langkah 1)
+  if (isMobile) return; 
+
   clearTimeout(blurDebounce);
   blurDebounce = setTimeout(() => {
     if (!document.hidden) {
@@ -1139,9 +1181,6 @@ function onWindowBlur() {
       recordViolation('APP_BLUR', 'Window kehilangan fokus', false);
     }
   }, 500);
-}
-function onWindowFocus() {
-  document.getElementById('blur-overlay').classList.remove('show');
 }
 
 // ─ DevTools detection ─
@@ -1406,6 +1445,13 @@ document.addEventListener('keydown', e => {
   if (active.id==='screen-login') doLogin();
   if (active.id==='screen-token') doVerifyToken();
 });
+
+// Fungsi untuk membuka Dashboard Dosen di tab baru
+function bukaDashboardDosen() {
+  // Menggunakan variabel API_URL yang sudah Bapak isi sebelumnya
+  window.open(API_URL + '?dashboard=1', '_blank');
+}
+
 </script>
 </body>
 </html>
